@@ -1,0 +1,346 @@
+/* Outer Canvas */
+.outerCanvas {
+  background-color: #0F0C13; /* Match the first section's background so there's no seam */
+  min-height: 100vh;
+  padding: 0;
+  font-family: 'Inter', 'General Sans', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.mainFrame {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Base Typo */
+h1, h2, h3, h4, p {
+  margin: 0;
+  font-weight: 400;
+}
+
+/* SECTION 1 - Dark Story Card */
+.sectionDarkStory {
+  background-color: #0F0C13;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 48px 64px 120px 64px;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 64px;
+}
+
+.logoImg {
+  height: 64px;
+  width: auto;
+  display: block;
+}
+
+.topRight {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.storyContent {
+  position: relative;
+  z-index: 10;
+  max-width: 680px;
+}
+
+.categoryLabel {
+  display: block;
+  color: #7E9495;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.headlineMedium {
+  color: #F2F2F2;
+  font-size: 56px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+  margin-bottom: 24px;
+}
+
+.highlightItalic {
+  font-style: italic;
+  font-weight: 500;
+  background: linear-gradient(135deg, #8A5CF6 0%, #C35DA9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.paragraphMuted {
+  color: #A0A0A0;
+  font-size: 18px;
+  line-height: 1.5;
+  margin-bottom: 40px;
+  max-width: 500px;
+}
+
+/* AI Prompt Component */
+.aiPromptContainer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  max-width: 560px;
+}
+
+.aiPromptWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 16px;
+  transition: all 0.2s ease;
+}
+
+.aiPromptWrapper:focus-within {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sparkleIcon {
+  color: #8A5CF6;
+  width: 20px;
+  height: 20px;
+}
+
+.aiPromptInput {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 16px;
+  width: 100%;
+  outline: none;
+  font-family: inherit;
+}
+
+.aiPromptInput::placeholder {
+  color: #7E9495;
+}
+
+.bottomGlow {
+  position: absolute;
+  bottom: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 300px;
+  background: radial-gradient(circle at 20% 50%, #C35DA9 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, #7B3FF2 0%, transparent 50%),
+              radial-gradient(circle at 80% 50%, #2D35FF 0%, transparent 40%);
+  filter: blur(80px);
+  opacity: 0.85;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* SECTION 2 - Light Introduction Card */
+.sectionLightIntro {
+  background-color: #F5F5F3;
+  position: relative;
+  border-radius: 32px;
+  margin-top: -32px;
+  z-index: 20;
+  padding: 48px 64px 80px 64px;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+}
+
+.topBarLight {
+  padding-bottom: 24px;
+  border-bottom: 1px solid #D7D7D2;
+  margin-bottom: 64px;
+  font-size: 20px;
+}
+
+.numberPurple {
+  color: #8A5CF6;
+  font-weight: 500;
+}
+
+.labelGreenMuted {
+  color: #7D9594;
+}
+
+.introContent {
+  display: flex;
+  gap: 80px;
+}
+
+.introLeft {
+  flex: 0 0 55%;
+}
+
+.headlineLargeDark {
+  color: #111111;
+  font-size: 72px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+  margin-bottom: 60px;
+}
+
+.btnOutlineDark {
+  background: transparent;
+  color: #111111;
+  border: 1px solid #B9BDB8;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnOutlineDark:hover {
+  border-color: #111111;
+  background: rgba(0,0,0,0.02);
+}
+
+.introRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.iconListItem {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #E5E5E0;
+}
+
+.iconListItem:last-child {
+  border-bottom: none;
+}
+
+.iconCircle {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  border: 1px solid rgba(138, 92, 246, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.iconPurple {
+  color: #8A5CF6;
+  width: 28px;
+  height: 28px;
+}
+
+.iconListText h4 {
+  color: #111111;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  margin-top: 10px;
+}
+
+.iconListText p {
+  color: #5D7575;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* SECTION 3 - Dark Team Section */
+.sectionDarkTeam {
+  background-color: #171717;
+  border-radius: 32px;
+  margin-top: -32px;
+  z-index: 10;
+  padding: 80px 64px 80px 64px;
+  padding-top: 100px;
+}
+
+.teamHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 80px;
+}
+
+.helperText {
+  color: #7E9495;
+  font-size: 16px;
+  max-width: 240px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.headlineMassive {
+  flex: 1;
+  text-align: center;
+  color: #F2F2F2;
+  font-size: 72px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.placeholderCard {
+  background-color: #303030;
+  border-radius: 20px;
+  aspect-ratio: 4/5;
+  width: 100%;
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+  .introContent {
+    flex-direction: column;
+    gap: 60px;
+  }
+  .introLeft {
+    flex: none;
+    width: 100%;
+  }
+  .teamHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .headlineMassive {
+    text-align: left;
+    font-size: 56px;
+  }
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .sectionDarkStory, .sectionLightIntro, .sectionDarkTeam {
+    padding: 32px 24px;
+  }
+  .headlineMedium, .headlineLargeDark, .headlineMassive {
+    font-size: 40px;
+  }
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,11 @@
+Razorpay:--
+
+key_id:   rzp_test_pyvRKb9k1Kl6rP
+key_secret:  nDMa8saSv559USlAr7Ukyr3v
+
+
+
+
+
+
+

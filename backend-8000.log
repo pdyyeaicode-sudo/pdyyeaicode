@@ -1,0 +1,4 @@
+INFO:     127.0.0.1:57311 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57313 - "POST /upload-image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51687 - "POST /upload-image HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52632 - "POST /upload-image HTTP/1.1" 200 OK

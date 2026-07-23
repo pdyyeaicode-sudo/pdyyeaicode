@@ -1,0 +1,964 @@
+/*
+ * Creative Studio shell layout (Req 13.7, 13.8, 13.11).
+ *
+ * Pure layout + chrome styling for the editor shell. All colors reference the
+ * monochrome-plus-single-accent token set from `theme.css` (Req 13.4); active
+ * and interactive states use `--accent` exclusively (Req 13.10). No hardcoded
+ * palette values are introduced here.
+ *
+ * This module owns layout only — interactivity (pan/zoom, selection, autosave,
+ * export wiring) is layered in by later tasks through the components it frames.
+ */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font-family: "General Sans", system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* --- Top_Bar (Req 13.7) --- */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 48px;
+  flex: 0 0 auto;
+  padding: 0 0.75rem;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.topGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.topSpacer {
+  flex: 1 1 auto;
+}
+
+.projectName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg-0);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-1);
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--bg-2);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Active / pressed chrome state uses the single accent (Req 13.10). */
+.iconButtonActive {
+  border-color: var(--accent);
+  background: var(--bg-2);
+}
+
+.saveStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--fg-2);
+  padding: 0 0.4rem;
+  white-space: nowrap;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 32px;
+  padding: 0 0.6rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-width: 180px;
+}
+
+.searchInput {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.searchInput::placeholder {
+  color: var(--fg-2);
+}
+
+.collaborators {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--fg-2);
+  font-size: 0.78rem;
+}
+
+/* --- Body: tool rail + sidebar + center + properties --- */
+
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.floatingToolbar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.toolbarSeparator {
+  width: 1px;
+  height: 24px;
+  background: var(--line);
+  margin: 0 0.25rem;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 72px;
+  flex: 0 0 auto;
+  background: var(--bg-1); /* Polotno-style dark mode uses a darker background for the nav */
+  border-right: 1px solid var(--line);
+  z-index: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebarNav::-webkit-scrollbar {
+  display: none;
+}
+
+.navButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 72px;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--fg-1);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.navButton:hover {
+  background: var(--bg-2);
+  color: var(--fg-0);
+}
+
+.navButtonActive {
+  background: var(--bg-0);
+  color: var(--accent);
+  position: relative;
+}
+
+.navButtonActive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+
+.navLabel {
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.leftSidebar {
+  display: flex;
+  flex-direction: column;
+  width: 288px;
+  flex: 0 0 auto;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  min-height: 0;
+}
+
+.sectionTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sectionTab {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.sectionTab:hover {
+  background: var(--bg-2);
+}
+
+.sectionTabActive {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.sectionBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--fg-0);
+}
+
+.placeholder {
+  color: var(--fg-2);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-0);
+}
+
+.contextualBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 40px;
+  flex: 0 0 auto;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--fg-1);
+  font-size: 0.8rem;
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden; /* Infinite canvas feel: hide overflow */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  cursor: default; /* Overridden to grab by useViewport when panning */
+}
+
+.stageEmpty {
+  color: var(--fg-2);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* --- Editor_Canvas host (task 5.1) --- */
+
+/*
+ * Relative host so the inert selection-overlay seam (task 5.5) can be absolutely
+ * positioned over the SVG. The underlying SVGCanvas keeps its own centering.
+ */
+.canvasHost {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.canvasHost svg {
+  overflow: visible;
+}
+/* Overlay seam for selection handles + marquee (mounted in task 5.5). */
+.canvasOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * Selection affordances (task 5.5, Req 1.12). All HTML-positioned over the SVG
+ * in host-local pixels so handle size stays constant regardless of zoom. The
+ * accent token marks the active selection (Req 13.4/13.10). Everything is
+ * pointer-events:none so events pass through to the canvas for hit-testing.
+ */
+.layerFocused {
+  outline: 2px solid var(--accent-primary, var(--accent));
+  outline-offset: 2px;
+  animation: focusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes focusPulse {
+  0%, 100% {
+    outline-color: var(--accent-primary, var(--accent));
+  }
+  50% {
+    outline-color: var(--accent-secondary, var(--fg-1));
+  }
+}
+.selectionBox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  pointer-events: none;
+  z-index: 8;
+}
+
+.selectionHandle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  box-sizing: border-box;
+  background: var(--bg-0);
+  border: 1px solid var(--accent);
+  pointer-events: auto; /* Required to intercept drags */
+  z-index: 9;
+}
+
+.rotationHandle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+  box-sizing: border-box;
+  background: var(--accent);
+  border: 1px solid var(--bg-0);
+  border-radius: 50%;
+  pointer-events: auto; /* Required to intercept drags */
+  z-index: 9;
+}
+
+.marquee {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--accent);
+  background: var(--bg-2);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.zoomIndicator {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-size: 0.78rem;
+}
+
+/* --- Zoom controls overlay (task 5.2, Req 1.6) --- */
+
+.zoomControls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-1);
+}
+
+.zoomButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-1);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.zoomButton:hover {
+  background: var(--bg-2);
+}
+
+.zoomReset {
+  min-width: 52px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.zoomReset:hover {
+  background: var(--bg-2);
+}
+
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  width: 288px;
+  flex: 0 0 auto;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+  min-height: 0;
+  overflow: auto;
+}
+
+.panelSection {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Progressive disclosure: collapsible advanced controls (Req 13.11). */
+.collapsible {
+  border-bottom: 1px solid var(--line);
+}
+
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+}
+
+.collapsibleHeader:hover {
+  background: var(--bg-2);
+}
+
+.collapsibleChevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+
+.collapsibleChevronOpen {
+  transform: rotate(180deg);
+}
+
+.collapsibleBody {
+  padding: 0 0.75rem 0.75rem;
+}
+
+/* --- Bottom_Panel (Req 13.8, 13.9) --- */
+
+.bottomPanel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 96px;
+  flex: 0 0 auto;
+  padding: 0 0.75rem;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  color: var(--fg-2);
+  font-size: 0.8rem;
+}
+
+.bottomLabel {
+  font-weight: 600;
+  color: var(--fg-1);
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--bg-0);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+
+.primaryButton:hover {
+  opacity: 0.9;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.secondaryButton:hover {
+  background: var(--bg-2);
+}
+
+.toolRailDivider {
+  width: 24px;
+  height: 1px;
+  background: var(--line);
+  margin: 0.25rem 0;
+}
+
+/* --- Layers_Panel (task 9.1, Req 3.1–3.8, 3.10, 3.11) --- */
+
+.layersPanel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0;
+}
+
+.layersPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  padding: 0 4px;
+}
+
+.layersCount {
+  min-width: 22px;
+  color: var(--fg-2);
+  font-size: 0.7rem;
+  line-height: 1;
+  text-align: right;
+}
+
+.layerTree {
+  width: 100%;
+  min-width: 0;
+}
+
+.layerTree :global([role="tree"]) {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.layerTree :global([role="treeitem"]) {
+  min-width: 0;
+}
+
+.layerTree :global(.astryx-tree-list-item) {
+  min-height: 30px;
+  border-radius: 4px;
+}
+
+.layerTreeStart {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.layerDragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 22px;
+  color: var(--fg-2);
+  cursor: grab;
+  opacity: 0.45;
+}
+
+.layerDragHandle[draggable="false"] {
+  cursor: default;
+  opacity: 0.18;
+}
+
+.layerTree :global([role="treeitem"]:hover) .layerDragHandle,
+.layerTree :global([role="treeitem"][aria-selected="true"]) .layerDragHandle {
+  opacity: 0.9;
+}
+
+.layerKindIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 22px;
+  color: var(--fg-1);
+}
+
+.layerTreeLabel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
+  min-height: 24px;
+  border-top: 2px solid transparent;
+  color: var(--fg-0);
+}
+
+.layerTreeLabelLocked {
+  color: var(--fg-2);
+}
+
+.layerTreeLabelDrop {
+  border-top-color: var(--accent);
+}
+
+.layerTreeName {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layerNameInput {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.15rem 0.3rem;
+  outline: none;
+}
+
+.layerTreeActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+
+.iconToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg-1);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.iconToggle:hover:not(:disabled) {
+  background: var(--bg-1);
+}
+
+.iconToggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.opacityField {
+  width: 34px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 0.74rem;
+  text-align: right;
+  padding: 0;
+  outline: none;
+  appearance: textfield;
+}
+
+.opacityField::-webkit-inner-spin-button,
+.opacityField::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.layerOpacityControl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 48px;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--fg-2);
+  font-size: 0.68rem;
+  box-sizing: border-box;
+}
+
+.layerOpacityControl:focus-within {
+  border-color: var(--accent);
+}
+
+.fieldError {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--accent);
+  white-space: normal;
+}
+
+/* --- Properties_Panel single-selection fields (task 10.1, Req 9.1) --- */
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg-2);
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg-2);
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.fieldLabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--fg-2);
+}
+
+.fieldInput {
+  height: 28px;
+  padding: 0 0.5rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+select.fieldInput {
+  appearance: none;
+  padding-right: 1.5rem;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23A89991" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+}
+
+select.fieldInput option {
+  background: #1C1816;
+  color: #D0C5BD;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fieldInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Invalid field state (Req 9.3, 9.5). */
+.fieldInput[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+
+.fieldError {
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.fieldNote {
+  font-size: 0.72rem;
+  color: var(--fg-2);
+}
+
+/* --- Alignment Toolbar (Task 4, Req 6) --- */
+
+.alignmentToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alignmentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.alignmentToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--fg-1);
+  cursor: pointer;
+}
+
+.alignmentToggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.alignmentToggle input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.alignmentButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alignmentGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.alignmentLabel {
+  flex: 0 0 auto;
+  width: 70px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--fg-2);
+}
+
+.alignmentButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-2);
+  color: var(--fg-1);
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.alignmentButton:hover:not(:disabled) {
+  background: var(--bg-1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.alignmentButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.alignmentButton:active:not(:disabled) {
+  background: var(--bg-0);
+}

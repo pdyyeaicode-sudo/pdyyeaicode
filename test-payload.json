@@ -1,0 +1,13 @@
+{
+  "prompt": "Diwali sale poster 50% off electronics bold style",
+  "brandKit": {
+    "primaryColor": "#FF6B00",
+    "secondaryColor": "#FFD700",
+    "fontFamily": "Arial",
+    "logoUrl": "",
+    "tone": "festive"
+  },
+  "targetSize": { "width": 1080, "height": 1080, "unit": "px" },
+  "outputFormat": "svg",
+  "sessionHistory": []
+}

@@ -1,0 +1,35 @@
+INFO:     Started server process [18000]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+ERROR:printrocket.encoder:{'stage': 'encoder-api', 'status': 'error', 'error': "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3CHuclqz8vIU6nWcDKO3sGC3ufY'}"}
+ERROR:printrocket.orchestrator:Unhandled error during encoder stage for request d6bd4e64-91c4-4800-a203-7eccd3d2b4a1
+Traceback (most recent call last):
+  File "H:\Sratup projects\Dreamer\services\encoder\encoder.py", line 53, in encode
+    raw_content: str = _request_design_spec(user_message)
+  File "H:\Sratup projects\Dreamer\services\encoder\encoder.py", line 99, in _request_design_spec
+    completion: Any = client.with_options(timeout=20.0).chat.completions.create(
+  File "H:\Sratup projects\Dreamer\venv\lib\site-packages\openai\_utils\_utils.py", line 287, in wrapper
+    return func(*args, **kwargs)
+  File "H:\Sratup projects\Dreamer\venv\lib\site-packages\openai\resources\chat\completions\completions.py", line 1211, in create
+    return self._post(
+  File "H:\Sratup projects\Dreamer\venv\lib\site-packages\openai\_base_client.py", line 1314, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "H:\Sratup projects\Dreamer\venv\lib\site-packages\openai\_base_client.py", line 1087, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.APIStatusError: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3CHuclqz8vIU6nWcDKO3sGC3ufY'}
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "H:\Sratup projects\Dreamer\api\orchestrator.py", line 86, in _run_stage
+    result: StageResult = await asyncio.wait_for(operation, timeout=30.0)
+  File "C:\Program Files\Python39\lib\asyncio\tasks.py", line 479, in wait_for
+    return fut.result()
+  File "H:\Sratup projects\Dreamer\api\orchestrator.py", line 110, in _encode_design_request
+    return encode(request, request_id)
+  File "H:\Sratup projects\Dreamer\services\encoder\encoder.py", line 62, in encode
+    raise ValueError("Encoder API request failed. Check OPENAI_API_KEY and model access.") from exc
+ValueError: Encoder API request failed. Check OPENAI_API_KEY and model access.
+INFO:printrocket.orchestrator:{'requestId': 'd6bd4e64-91c4-4800-a203-7eccd3d2b4a1', 'stage': 'encoder', 'durationMs': 2387.47, 'status': 'error', 'error': 'Internal pipeline failure.'}

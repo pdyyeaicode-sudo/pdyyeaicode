@@ -1,0 +1,274 @@
+/* About Page & Section Styles */
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  background-color: #050505;
+  color: #F5F5F5;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 120px 24px 80px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Background Atmospheric Glow */
+.glowBackground {
+  position: absolute;
+  top: -100px;
+  right: -50px;
+  width: 700px;
+  height: 500px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(92, 78, 255, 0.45) 25%,
+    rgba(59, 130, 246, 0.25) 50%,
+    transparent 70%
+  );
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.heroBlock {
+  text-align: left;
+  max-width: 780px;
+  margin-bottom: 72px;
+}
+
+.badge {
+  display: inline-block;
+  background: rgba(92, 78, 255, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(165, 180, 252, 0.3);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 999px;
+  margin-bottom: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+  margin: 0 0 24px 0;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Story Grid Section */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 80px;
+}
+
+.card {
+  background: rgba(18, 18, 22, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.iconWrapper {
+  width: 48px;
+  height: 48px;
+  background: rgba(92, 78, 255, 0.15);
+  border: 1px solid rgba(165, 180, 252, 0.25);
+  color: #a5b4fc;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.cardTitle {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+}
+
+.cardDesc {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Comparison Feature Block */
+.comparisonBlock {
+  background: linear-gradient(135deg, rgba(22, 22, 28, 0.9), rgba(12, 12, 15, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 48px;
+  margin-bottom: 80px;
+}
+
+.comparisonTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.comparisonDesc {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 36px;
+  max-width: 800px;
+}
+
+.pillarsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.pillarItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.pillarNum {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-bottom: 8px;
+}
+
+.pillarTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+}
+
+.pillarText {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* CTA Footer Block */
+.ctaBlock {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(92, 78, 255, 0.06);
+  border: 1px solid rgba(92, 78, 255, 0.2);
+  border-radius: 24px;
+}
+
+.ctaTitle {
+  font-size: 2.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.ctaDesc {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 28px;
+}
+
+.ctaBtn {
+  background-color: #ffffff;
+  color: #000000;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 50px;
+  padding: 14px 36px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ctaBtn:hover {
+  background-color: #e4e4e7;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .pillarsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .title {
+    font-size: 38px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 84px 16px 48px;
+  }
+  .heroBlock {
+    margin-bottom: 40px;
+  }
+  .title {
+    font-size: 30px;
+    line-height: 1.15;
+  }
+  .subtitle {
+    font-size: 0.95rem;
+  }
+  .card {
+    padding: 24px;
+  }
+  .comparisonBlock {
+    padding: 24px 18px;
+    margin-bottom: 48px;
+  }
+  .comparisonTitle {
+    font-size: 1.5rem;
+  }
+  .pillarsGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .ctaBlock {
+    padding: 40px 18px;
+  }
+  .ctaTitle {
+    font-size: 1.75rem;
+  }
+  .ctaBtn {
+    width: 100%;
+    padding: 12px 24px;
+  }
+}
+

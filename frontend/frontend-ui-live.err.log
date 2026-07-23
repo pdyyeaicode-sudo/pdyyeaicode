@@ -1,0 +1,65 @@
+[2m8:29:24 pm[22m [31m[1m[vite][22m[39m [31mInternal server error: H:\Sratup projects\Dreamer\frontend\src\components\SVGCanvas.tsx: 'return' outside of function. (102:6)
+
+[0m [90m 100 |[31m     [36mconst[31m svgRoot [33m=[31m container[33m.[31mquerySelector([32m"svg"[31m)[33m;[31m
+ [90m 101 |[31m     [36mif[31m ([33m![31m(svgRoot [36minstanceof[31m [33mSVGSVGElement[31m)) {
+[31m[1m>[22m[31m[90m 102 |[31m       [36mreturn[31m undefined[33m;[31m
+ [90m     |[31m       [31m[1m^[22m[31m
+ [90m 103 |[31m     }
+ [90m 104 |[31m
+ [90m 105 |[31m       [36mconst[31m gradientEls [33m=[31m [33mArray[31m[33m.[31m[36mfrom[31m(svgRoot[33m.[31mquerySelectorAll[33m<[31m[33mSVGElement[31m[33m>[31m([0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mH:/Sratup projects/Dreamer/frontend/src/components/SVGCanvas.tsx[39m:102:6
+[33m  103|      }
+  104|  
+  105|        const gradientEls = Array.from(svgRoot.querySelectorAll<SVGElement>(
+     |                                                       ^
+  106|          "[fill^='gradient:'], [stroke^='gradient:'], [data-fill^='gradient:'], [data-stroke^='gradient:']",
+  107|        ));[39m
+      at constructor (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseReturnStatement (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13153:12)
+      at TypeScriptParserMixin.parseStatementContent (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12815:21)
+      at TypeScriptParserMixin.parseStatementContent (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseStatementContent (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12875:21)
+      at TypeScriptParserMixin.parseStatementContent (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementOrSloppyAnnexBFunctionDeclaration (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12774:17)
+      at TypeScriptParserMixin.parseIfStatement (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13147:28)
+      at TypeScriptParserMixin.parseStatementContent (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12813:21)
+      at TypeScriptParserMixin.parseStatementContent (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (H:\Sratup projects\Dreamer\frontend\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:261:32)
+      at H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:223:11)
+      at H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:189:28
+      at H:\Sratup projects\Dreamer\frontend\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:113:33
+      at step (H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:287:14)
+      at H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (H:\Sratup projects\Dreamer\frontend\node_modules\gensync\index.js:223:11)
+[2m8:29:52 pm[22m [31m[1m[vite][22m[39m [31mInternal server error: EBUSY: resource busy or locked, open 'H:\Sratup projects\Dreamer\frontend\src\components\SVGCanvas.tsx'[39m
+      at async open (node:internal/fs/promises:633:25)
+      at async Object.readFile (node:internal/fs/promises:1237:14)
+      at async loadAndTransform (file:///H:/Sratup%20projects/Dreamer/frontend/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:51876:16)
+      at async viteTransformMiddleware (file:///H:/Sratup%20projects/Dreamer/frontend/node_modules/vite/dist/node/chunks/dep-BWSbWtLw.js:61881:24)

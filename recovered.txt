@@ -1,0 +1,208 @@
+Created At: 2026-07-20T09:34:21Z
+Completed At: 2026-07-20T09:34:22Z
+File Path: `file:///h:/Sratup%20projects/Dreamer/frontend/src/pydree/PydreeStudio.tsx`
+Total Lines: 2131
+Total Bytes: 92072
+Showing lines 1 to 200
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: "use client";
+2: 
+3: /**
+4:  * PydreeStudio â€” reference-matched Figma-style dark editor.
+5:  *
+6:  * Top bar (menu + title + center tool row + play/zoom/share/avatar), a slim
+7:  * icon rail, a Layers/Assets panel (Pages + layer tree), a checkerboard canvas
+8:  * with the artboard, and a Design inspector (Frame / Texts / Colors / Opacity /
+9:  * Effects / Export). Consumes useCreativeStudio for real data where present.
+10:  */
+11: 
+12: import React, { useState, useEffect, useRef, useCallback, type ChangeEvent, type ReactNode } from "react";
+13: import { Button } from "@astryxdesign/core/Button";
+14: import { IconButton } from "@astryxdesign/core/IconButton";
+15: import { Tab, TabList } from "@astryxdesign/core/TabList";
+16: import { ContextMenu, ContextMenuItem, type ContextMenuDivider } from "@astryxdesign/core/ContextMenu";
+17: import { Badge } from "@astryxdesign/core/Badge";
+18: import { Banner } from "@astryxdesign/core/Banner";
+19: import { jsPDF } from "jspdf";
+20: import "svg2pdf.js";
+21: import { useNavigate, useSearchParams } from "react-router-dom";
+22: import {
+23:   Menu, MousePointer2, Hand, MessageSquare, Frame, Square, Circle as CircleIcon,
+24:   PenTool, Image as ImageIcon, Palette, Crop, ChevronDown, ChevronRight, Play,
+25:   Plus, Minus, Trash2, Search, Layers as LayersIcon, Component, Sparkles, Type, Paperclip,
+26: 
+27:   FolderOpen, Settings, Download, Box, Wand2,
+28:   Ruler, Grid3x3, Magnet, Maximize2, Scan, AlignLeft, AlignCenter, AlignRight, ArrowUpToLine, ArrowDownToLine, FlipVertical, UploadCloud, ChevronDown as ChevronDownIcon,
+29:   Home, Undo2, Redo2, ZoomIn, ZoomOut, Sun, Moon, LayoutTemplate, Briefcase,
+30:   type LucideIcon,
+31: } from "lucide-react";
+32: 
+33: import { useCreativeStudio } from "../editor/useCreativeStudio";
+34: import { CenterStage } from "../editor/CenterStage";
+35: import { SettingsPanel } from "./SettingsPanel";
+36: import { EditorToolbar } from "../components/EditorToolbar";
+37: import { useKeyboardShortcuts } from "../editor/hooks/useKeyboardShortcuts";
+38: 
+39: 
+40: import { translateLayerCommand, resizeLayerCommand, rotateLayerCommand, findLayer, getActiveArtboard, reorderLayerCommand, findLayerPosition, separateLayerCommand, batchTranslateCommand, groupCommand, ungroupCommand } from "../editor/commands";
+41: import { alignLayers, type AlignMode } from "../editor/utils/alignment";
+42: 
+43: import { createShapeCommand, buildShapeLayer } from "../editor/tools/shapeTool";
+44: import { createLayerCommand } from "../editor/commands/createLayerCommand";
+45: import { generateShapePath } from "../editor/hooks/useShapeDrawing";
+46: import { placeImageFile } from "../editor/tools/imageTool";
+47: import { createTextLayer, evaluateTextCommit } from "../editor/tools/textTool";
+48: import { PromptForm } from "../components/PromptForm";
+49: import AssetsPanel from "./AssetsPanel";
+50: import { svgToPathData } from "./utils/svgUtils";
+51: import { MarketPanel } from "./MarketPanel";
+52: import { BrandKitPanel } from "./BrandKitPanel";
+53: import { TextPanel } from "./TextPanel";
+54: import { TemplatesPanel } from "./TemplatesPanel";
+55: import { LayersPanel } from "../editor/LayersPanel";
+56: import ColorPanel from "./ColorPanel";
+57: import { deleteLayerCommand } from "../editor/commands/deleteLayerCommand";
+58: import { setPropertyCommand } from "../editor/commands/setPropertyCommand";
+59: import { CropModal } from "../editor/CropModal";
+60: import { PropertiesPanel } from "../editor/PropertiesPanel";
+61: import { ToastContainer } from "../editor/ToastContainer";
+62: import { createProject, getProject, saveProjectDocument } from "../lib/projects";
+63: import { type DocumentLayer } from "../editor/types/documentModel";
+64: import { mintId } from "../editor/commands";
+65: import styles from "./PydreeStudio.module.css";
+66: import "./pydree.css";
+67: import {
+68:   GENERATION_ASPECT_RATIOS,
+69:   GENERATION_RESOLUTIONS,
+70:   resolveGenerationTargetSize,
+71:   type GenerationAspectRatio,
+72:   type GenerationResolution,
+73: } from "./generationSettings";
+74: 
+75: /* ----------------------------------------------------------------- data */
+76: 
+77: interface ToolDefinition {
+78:   icon: LucideIcon;
+79:   caret?: boolean;
+80:   label: string;
+81:   shortcut?: string;
+82: }
+83: 
+84: const TOP_TOOLS: ToolDefinition[] = [
+85:   { icon: MousePointer2, label: "Select", shortcut: "V" },
+86:   { icon: Hand, label: "Hand Tool", shortcut: "H" },
+87:   { icon: Frame, label: "Frame", caret: true, shortcut: "F" },
+88:   { icon: Square, label: "Rectangle", caret: true, shortcut: "R" },
+89:   { icon: PenTool, label: "Pen", caret: true, shortcut: "P" },
+90:   { icon: Type, label: "Text", shortcut: "T" },
+91:   { icon: ImageIcon, label: "Image", caret: true, shortcut: "I" },
+92:   { icon: Palette, label: "Color", caret: true },
+93:   { icon: Crop, label: "Crop", shortcut: "C" },
+94: ];
+95: 
+96: const RAIL: { id: string; icon: LucideIcon; label: string }[] = [
+97:   { id: "assets", icon: Component, label: "Elements" },
+98:   { id: "templates", icon: LayoutTemplate, label: "Templates" },
+99:   { id: "text", icon: Type, label: "Text" },
+100:   { id: "brand", icon: Briefcase, label: "Brand" },
+101:   { id: "effects", icon: Wand2, label: "Effects" },
+102:   { id: "files", icon: FolderOpen, label: "Files" },
+103:   { id: "color", icon: Palette, label: "Color" },
+104:   { id: "ai", icon: Sparkles, label: "AI" },
+105: ];
+106: 
+107: const TREE_ICONS: Record<string, LucideIcon> = {
+108:   frame: Frame, group: Box, rect: Square, line: Minus, text: Type, image: ImageIcon,
+109: };
+110: interface TreeNode { id: string; name: string; icon: keyof typeof TREE_ICONS; children?: TreeNode[]; }
+111: const mapLayersToTreeNodes = (layers: DocumentLayer[]): TreeNode[] => {
+112:   return [...layers].reverse().map(layer => {
+113:     let iconKey: keyof typeof TREE_ICONS = "rect";
+114:     if (layer.kind === "text") iconKey = "text";
+115:     else if (layer.kind === "image") iconKey = "image";
+116:     else if (layer.kind === "group") iconKey = "group";
+117:     else if (layer.kind === "line") iconKey = "line";
+118:     
+119:     return {
+120:       id: layer.id,
+121:       name: layer.name,
+122:       icon: iconKey,
+123:       children: layer.kind === "group" ? mapLayersToTreeNodes(layer.children || []) : undefined
+124:     };
+125:   });
+126: };
+127: const SAMPLE_TREE: TreeNode[] = [
+128:   { id: "f1", name: "Frame name", icon: "frame", children: [
+129:     { id: "g1", name: "Group001", icon: "group", children: [] },
+130:     { id: "g2", name: "Group002", icon: "group", children: [] },
+131:     { id: "r1", name: "Rectangle01", icon: "rect" },
+132:     { id: "b1", name: "Border line", icon: "line" },
+133:     { id: "t1", name: "Text title", icon: "text" },
+134:     { id: "t2", name: "Text layer", icon: "text" },
+135:     { id: "i1", name: "Information", icon: "text" },
+136:   ]},
+137: 
+138:   { id: "f2", name: "Frame name", icon: "frame", children: [] },
+139:   { id: "f3", name: "Frame name", icon: "frame", children: [] },
+140:   { id: "r2", name: "Rectangle01", icon: "rect" },
+141:   { id: "f4", name: "Frame name", icon: "frame", children: [
+142:     { id: "b2", name: "Border line", icon: "line" },
+143:     { id: "ig", name: "Items group", icon: "group", children: [] },
+144:   ]},
+145:   { id: "f5", name: "Frame name", icon: "frame" },
+146:   { id: "ip", name: "Inner page", icon: "frame" },
+147:   { id: "am", name: "Artboard main", icon: "frame", children: [] },
+148: ];
+149: 
+150: const FONTS = ["General Sans", "Inter", "Arial", "Helvetica", "Roboto", "Poppins", "Times New Roman"];
+151: const WEIGHTS = ["Light", "Regular", "Medium", "Semibold", "Bold"];
+152: const SIZES = ["12pt", "14pt", "16pt", "18pt", "24pt", "32pt"];
+153: 
+154: function snapToHalf(value: number): number {
+155:   return Number.isFinite(value) ? Math.round(value * 2) / 2 : 0;
+156: }
+157: 
+158: function isTypingTarget(target: EventTarget | null): boolean {
+159:   // If target is inside a shadow DOM, find the active element inside it
+160:   let activeEl = document.activeElement;
+161:   while (activeEl?.shadowRoot && activeEl.shadowRoot.activeElement) {
+162:     activeEl = activeEl.shadowRoot.activeElement;
+163:   }
+164: 
+165:   const element = target instanceof Element ? target : activeEl;
+166:   if (!element) {
+167:     return false;
+168:   }
+169:   
+170:   if (element.tagName === "INPUT" || element.tagName === "TEXTAREA" || element.tagName === "SELECT") {
+171:     return true;
+172:   }
+173:   
+174:   if (element instanceof HTMLElement && element.isContentEditable) {
+175:     return true;
+176:   }
+177: 
+178:   return element.closest("input, textarea, select, [contenteditable='true'], [role='textbox']") !== null;
+179: }
+180: 
+181: function hasConfiguredProjectPersistence(): boolean {
+182:   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+183:   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+184:   const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+185:   return Boolean(
+186:     supabaseUrl?.startsWith("https://")
+187:       && supabaseKey
+188:       && !supabaseKey.includes("replace_me")
+189:       && clerkKey
+190:       && !clerkKey.includes("replace_me"),
+191:   );
+192: }
+193: 
+194: function findTextLayerByElementId(layers: readonly DocumentLayer[], elementId: string): DocumentLayer | null {
+195:   for (const layer of layers) {
+196:     if (layer.kind === "text" && layer.elementId === elementId) {
+197:       return layer;
+198:     }
+199:     if (layer.kind === "group") {
+200:       const nested = findTextLayerByElementId(layer.children, elementId);
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

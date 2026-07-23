@@ -1,0 +1,49 @@
+Created At: 2026-07-22T04:30:30Z
+Completed At: 2026-07-22T04:30:30Z
+File Path: `file:///h:/Sratup%20projects/Dreamer/frontend/src/pydree/PydreeStudio.tsx`
+Total Lines: 1495
+Total Bytes: 61152
+Showing lines 50 to 90
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+50: import { placeImageFile } from "../editor/tools/imageTool";
+51: import { createTextLayer, evaluateTextCommit } from "../editor/tools/textTool";
+52: import { PromptForm } from "../components/PromptForm";
+53: import AssetsPanel from "./AssetsPanel";
+54: import { svgToPathData } from "./utils/svgUtils";
+55: import { MarketPanel } from "./MarketPanel";
+56: import { BrandKitPanel } from "./BrandKitPanel";
+57: import { TextPanel } from "./TextPanel";
+58: import { TemplatesPanel } from "./TemplatesPanel";
+59: import { LayersPanel } from "../editor/LayersPanel";
+60: import ColorPanel from "./ColorPanel";
+61: import { deleteLayerCommand } from "../editor/commands/deleteLayerCommand";
+62: import { setPropertyCommand } from "../editor/commands/setPropertyCommand";
+63: import { CropModal } from "../editor/CropModal";
+64: import { PropertiesPanel } from "../editor/PropertiesPanel";
+65: import { ToastContainer } from "../editor/ToastContainer";
+66: import { createProject, getProject, saveProjectDocument } from "../lib/projects";
+67: import { type DocumentLayer } from "../editor/types/documentModel";
+68: import { mintId } from "../editor/commands";
+69: import styles from "./PydreeStudio.module.css";
+70: import "./pydree.css";
+71: import {
+72:   GENERATION_ASPECT_RATIOS,
+73:   GENERATION_RESOLUTIONS,
+74:   resolveGenerationTargetSize,
+75:   type GenerationAspectRatio,
+76:   type GenerationResolution,
+77: } from "./generationSettings";
+78: 
+79: /* ----------------------------------------------------------------- data */
+80: 
+81: interface ToolDefinition {
+82:   icon: LucideIcon;
+83:   caret?: boolean;
+84:   label: string;
+85:   shortcut?: string;
+86: }
+87: 
+88: type QuickShapeKind = "rectangle" | "circle" | "triangle" | "line";
+89: 
+90: type PendingCanvasInsertion =
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

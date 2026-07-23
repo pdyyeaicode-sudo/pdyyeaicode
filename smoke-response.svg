@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" data-printrocket="true" data-version="1.0">
+<defs>
+  <style><![CDATA[
+    @font-face {
+      font-family: 'PrintRocketEmbedded';
+      src: local('DejaVu Sans'), local('Arial');
+    }
+    .printrocket-text {
+      font-family: 'PrintRocketEmbedded', sans-serif;
+      white-space: pre;
+    }
+  ]]></style>
+  
+</defs>
+<g data-role="background" data-editable="false" data-layer-id="background">
+<image href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%221080%22%20height%3D%221080%22%20viewBox%3D%220%200%201080%201080%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22bg%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23FFFFDD%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23FFFF44%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22url%28%23bg%29%22/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"/>
+</g>
+<g data-role="shapes" data-editable="true" data-layer-id="shapes">
+<rect data-field="background" data-element-id="background-auto" x="0" y="0" width="1080" height="1080" fill="#FFFF44"/>
+<rect data-field="shape" data-element-id="shape-auto" x="0" y="0" width="1080" height="108" fill="#FFFF44"/>
+</g>
+<g data-role="image-slots" data-editable="true" data-layer-id="image-slots"></g>
+<g data-role="body" data-editable="true" data-layer-id="body">
+<text data-field="subheading" data-element-id="subheading-2" x="162" y="126.5" width="756" fill="#111111" font-size="27" class="printrocket-text printrocket-text--subheading" dominant-baseline="text-before-edge">50% off electronics</text>
+</g>
+<g data-role="cta" data-editable="true" data-layer-id="cta"></g>
+<g data-role="headline" data-editable="true" data-layer-id="headline">
+<text data-field="headline" data-element-id="headline-1" x="108" y="50.5" width="864" fill="#111111" font-size="41" class="printrocket-text printrocket-text--headline" dominant-baseline="text-before-edge">Diwali sale</text>
+</g>
+<g data-role="logo" data-editable="false" data-layer-id="logo"></g>
+<g data-role="print-marks" data-editable="false" data-layer-id="print-marks" visibility="hidden"><!-- bleed-box: 3mm; trim-marks: true --></g>
+</svg>

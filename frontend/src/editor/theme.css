@@ -1,0 +1,28 @@
+/*
+ * Creative Studio theme tokens.
+ * Updated with Figma-design-analysis styling rules.
+ */
+
+:root[data-theme="dark"] {
+  /* Inverse Canvas / Navy block inspired */
+  --bg-0: #1f1d3d; /* block-navy */
+  --bg-1: #000000; /* inverse-canvas */
+  --bg-2: #1f1d3d; 
+  --fg-0: #ffffff; /* inverse-ink */
+  --fg-1: #f1f1f1; /* hairline-soft */
+  --fg-2: #e6e6e6; /* hairline */
+  --line: #000000; 
+  --accent: #ff3d8b; /* accent-magenta */
+}
+
+:root[data-theme="light"] {
+  /* Canvas (White) */
+  --bg-0: #ffffff; /* canvas */
+  --bg-1: #f7f7f5; /* surface-soft */
+  --bg-2: #f4ecd6; /* block-cream */
+  --fg-0: #000000; /* ink */
+  --fg-1: #1f1d3d; 
+  --fg-2: #7a7a80; 
+  --line: #e6e6e6; /* hairline */
+  --accent: #ff3d8b; /* accent-magenta */
+}

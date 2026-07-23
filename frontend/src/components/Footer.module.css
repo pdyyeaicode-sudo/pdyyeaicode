@@ -1,0 +1,337 @@
+/* Minimal Editorial / Pengon Style Footer */
+
+.footer {
+  position: relative;
+  background-color: #F4F2ED;
+  color: #121212;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 80px 64px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-top: 1px solid #E3E0D8;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* Main Grid Layout */
+.mainGrid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 60px;
+  margin-bottom: 64px;
+}
+
+.leftCol {
+  flex: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.rightCol {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 80px;
+}
+
+/* Brand Pair */
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brandPrimary {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #121212;
+  text-transform: uppercase;
+}
+
+.brandDivider {
+  width: 1px;
+  height: 22px;
+  background-color: #D5D2C8;
+}
+
+.brandSecondary {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #121212;
+  font-family: Georgia, serif;
+}
+
+/* Description Block */
+.descBlock {
+  max-width: 480px;
+}
+
+.descLine {
+  font-size: 1rem;
+  color: #555555;
+  line-height: 1.6;
+  margin: 0 0 6px 0;
+}
+
+.descSubLine {
+  font-size: 0.95rem;
+  color: #777777;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.descLink {
+  color: #121212;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  font-weight: 500;
+}
+
+/* World Clocks */
+.clockGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding-top: 12px;
+}
+
+.clockItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clockTime {
+  font-family: "Courier New", Courier, monospace, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 600;
+  color: #121212;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.clockCity {
+  font-size: 0.95rem;
+  color: #555555;
+  font-weight: 500;
+}
+
+.clockRegion {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #999999;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* Link Columns */
+.linkGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.groupHeader {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8A8A8A;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.linkList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.linkList a {
+  color: #333333;
+  text-decoration: none;
+  font-size: 1.05rem;
+  font-weight: 400;
+  transition: color 0.15s ease;
+}
+
+.linkList a:hover {
+  color: #000000;
+}
+
+.extLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Horizontal Divider */
+.divider {
+  border: none;
+  border-top: 1px solid #E3E0D8;
+  margin: 0 0 32px 0;
+}
+
+/* Status & Legal Bar */
+.statusBar {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.statusMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6B6B6B;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.dot {
+  color: #B5B2A8;
+}
+
+.emailLink {
+  color: #121212;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.operationalStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2E7D32;
+}
+
+.greenPulse {
+  width: 7px;
+  height: 7px;
+  background-color: #49A35B;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(73, 163, 91, 0.6);
+}
+
+.disclaimerText {
+  font-size: 0.75rem;
+  color: #8A8A8A;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Bottom SVG Landscape Illustration */
+.illustrationWrapper {
+  position: relative;
+  width: 100%;
+  margin-top: 20px;
+  line-height: 0;
+}
+
+.svgLandscape {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.bottomMark {
+  position: absolute;
+  bottom: 24px;
+  left: 32px;
+  z-index: 10;
+}
+
+.triangleLogo {
+  font-size: 1.2rem;
+  color: #333333;
+}
+
+@media (max-width: 900px) {
+  .footer {
+    padding: 60px 24px 0;
+  }
+
+  .mainGrid {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .rightCol {
+    justify-content: flex-start;
+    gap: 60px;
+  }
+
+  .clockGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .svgLandscape {
+    height: 140px;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 44px 16px 0;
+  }
+
+  .mainGrid {
+    gap: 32px;
+    margin-bottom: 40px;
+  }
+
+  .brandRow {
+    gap: 12px;
+  }
+
+  .brandPrimary,
+  .brandSecondary {
+    font-size: 1rem;
+  }
+
+  .descLine {
+    font-size: 0.9rem;
+  }
+
+  .descSubLine {
+    font-size: 0.85rem;
+  }
+
+  .clockTime {
+    font-size: 1.3rem;
+  }
+
+  .clockCity {
+    font-size: 0.85rem;
+  }
+
+  .rightCol {
+    gap: 40px;
+  }
+
+  .statusMeta {
+    font-size: 0.7rem;
+    gap: 8px;
+  }
+
+  .svgLandscape {
+    height: 110px;
+  }
+}
+

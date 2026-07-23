@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+logs/layout_ops/*.json
+.DS_Store
+node_modules/
+.venv/
+venv/
+dist/
+.tmp/
+.vscode/

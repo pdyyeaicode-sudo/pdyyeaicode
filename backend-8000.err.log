@@ -1,0 +1,13 @@
+INFO:     Started server process [18660]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:printrocket.svg.image_to_layers:Loading EasyOCR reader on CPU
+INFO:printrocket.svg.image_to_layers:Loading SAM mask-generation pipeline on CPU
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+Device set to use cpu
+INFO:printrocket.orchestrator:{'requestId': '9da49f5b-8226-48a9-8f2a-f83b898fa10d', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
+INFO:printrocket.svg.image_to_layers:Downscaling upload for extraction from 1054x1492 to 565x800.
+INFO:printrocket.orchestrator:{'requestId': 'bb9d36e8-78ff-4d08-9194-7b0071bc5d5a', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
+INFO:printrocket.svg.image_to_layers:Downscaling upload for extraction from 1054x1492 to 565x800.
+INFO:printrocket.orchestrator:{'requestId': 'b8b4b62b-74bb-4fc1-8a8d-70693b9a6654', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}

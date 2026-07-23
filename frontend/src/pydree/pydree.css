@@ -1,0 +1,96 @@
+/*
+ * Pydree design tokens — reference-matched (Figma-style dark editor).
+ * Blue-violet accent, graphite surfaces, thin low-contrast borders.
+ */
+
+@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+body, #root {
+  font-family: 'Inter', sans-serif !important;
+}
+
+.pydree {
+  /* Canvas-layout variables resolve through the active Astryx theme. */
+  --p-bg-0: var(--color-background-body);
+  --p-bg-1: var(--color-background-surface);
+  --p-bg-2: var(--color-background-card);
+  --p-bg-3: var(--color-background-muted);
+  --p-bg-4: var(--color-accent-muted);
+
+  /* Canvas checkerboard */
+  --p-check-1: var(--color-background-body);
+  --p-check-2: var(--color-background-muted);
+
+  /* Text & Icons */
+  --p-fg-0: var(--color-text-primary);
+  --p-fg-1: var(--color-text-secondary);
+  --p-fg-2: var(--color-icon-secondary);
+  --p-fg-hover: var(--color-text-primary);
+
+  /* Borders */
+  --p-line: var(--color-border);
+  --p-line-strong: var(--color-border-emphasized);
+}
+
+.pydree.pydree-light {
+  --p-bg-0: var(--color-background-body);
+  --p-bg-1: var(--color-background-surface);
+  --p-bg-2: var(--color-background-card);
+  --p-bg-3: var(--color-background-muted);
+  --p-bg-4: var(--color-accent-muted);
+
+  /* Canvas checkerboard */
+  --p-check-1: var(--color-background-body);
+  --p-check-2: var(--color-background-muted);
+
+  /* Text & Icons */
+  --p-fg-0: var(--color-text-primary);
+  --p-fg-1: var(--color-text-secondary);
+  --p-fg-2: var(--color-icon-secondary);
+  --p-fg-hover: var(--color-text-primary);
+
+  /* Borders */
+  --p-line: var(--color-border);
+  --p-line-strong: var(--color-border-emphasized);
+
+  /* Accent - Deeper for contrast on light bg */
+  --p-accent: var(--color-accent);
+  --p-accent-hover: var(--color-accent);
+}
+
+.pydree {
+  /* Accent — Soft Blue */
+  --p-accent: var(--color-accent);
+  --p-accent-hi: var(--color-accent);
+  --p-accent-text: var(--color-on-accent);
+  --p-violet: var(--color-accent);
+  --p-accent-soft: var(--color-accent-muted);
+  --p-accent-line: var(--color-border-emphasized);
+
+  --p-bad: var(--color-error);
+
+  /* Border Radii (Curvy, soft aesthetic) */
+  --p-r: var(--radius-container);
+  --p-r-sm: var(--radius-element);
+  --p-r-xs: var(--radius-inner);
+  --p-r-pill: var(--radius-full);
+
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: var(--p-fg-0);
+  background: var(--p-bg-0);
+}
+
+.pydree *, .pydree *::before, .pydree *::after { box-sizing: border-box; }
+
+/* Icon system: Make lucide icons slightly thicker and perfectly block-level to fix any phantom baseline centering issues */
+.pydree svg.lucide { 
+  stroke-width: 1.8px; 
+  display: block; 
+}
+
+.pydree ::-webkit-scrollbar { width: 9px; height: 9px; }
+.pydree ::-webkit-scrollbar-thumb { background: var(--p-bg-4); border: 2px solid transparent; background-clip: content-box; border-radius: 8px; }
+.pydree ::-webkit-scrollbar-thumb:hover { background: var(--p-line-strong); background-clip: content-box; }
