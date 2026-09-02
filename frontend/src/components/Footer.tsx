@@ -1,51 +1,18 @@
-import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import styles from "./Footer.module.css";
 
-function getTimeString(timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(new Date());
-  } catch {
-    return new Date().toLocaleTimeString();
-  }
-}
-
 export default function Footer(): JSX.Element {
-  const [clocks, setClocks] = useState({
-    zurich: getTimeString("Europe/Zurich"),
-    newYork: getTimeString("America/New_York"),
-    tokyo: getTimeString("Asia/Tokyo"),
-    newDelhi: getTimeString("Asia/Kolkata"),
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setClocks({
-        zurich: getTimeString("Europe/Zurich"),
-        newYork: getTimeString("America/New_York"),
-        tokyo: getTimeString("Asia/Tokyo"),
-        newDelhi: getTimeString("Asia/Kolkata"),
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
         {/* Main Content Grid */}
         <div className={styles.mainGrid}>
-          {/* Left Column: Brand, Desc, and World Clocks */}
+          {/* Left Column: Brand, Desc, and Program Badge */}
           <div className={styles.leftCol}>
             {/* Brand Marks */}
             <div className={styles.brandRow}>
-              <span className={styles.brandPrimary}>PDYEE STUDIO</span>
+              <span className={styles.brandPrimary}>Pdyye Studio</span>
               <span className={styles.brandDivider}></span>
               <span className={styles.brandSecondary}>Pengon</span>
             </div>
@@ -53,9 +20,10 @@ export default function Footer(): JSX.Element {
             {/* Description */}
             <div className={styles.descBlock}>
               <p className={styles.descLine}>
-                Generative AI graphic studio with direct layer editing & vector decompose. Built at{" "}
+                Generative AI graphic studio with direct layer editing & vector
+                decompose. Built at{" "}
                 <a href="#about" className={styles.descLink}>
-                  Pdyee Studio
+                  Pdyye Studio
                 </a>.
               </p>
               <p className={styles.descSubLine}>
@@ -63,54 +31,38 @@ export default function Footer(): JSX.Element {
               </p>
             </div>
 
-            {/* World Clocks */}
-            <div className={styles.clockGrid}>
-              <div className={styles.clockItem}>
-                <span className={styles.clockTime}>{clocks.zurich}</span>
-                <span className={styles.clockCity}>Zürich</span>
-                <span className={styles.clockRegion}>EUROPE</span>
-              </div>
-              <div className={styles.clockItem}>
-                <span className={styles.clockTime}>{clocks.newYork}</span>
-                <span className={styles.clockCity}>New York</span>
-                <span className={styles.clockRegion}>N. AMERICA</span>
-              </div>
-              <div className={styles.clockItem}>
-                <span className={styles.clockTime}>{clocks.tokyo}</span>
-                <span className={styles.clockCity}>Tokyo</span>
-                <span className={styles.clockRegion}>ASIA</span>
-              </div>
-              <div className={styles.clockItem}>
-                <span className={styles.clockTime}>{clocks.newDelhi}</span>
-                <span className={styles.clockCity}>New Delhi</span>
-                <span className={styles.clockRegion}>INDIA</span>
-              </div>
+            <div className={styles.badgeRow}>
+              <img
+                src="/nvidia-inception-program-badge-rgb-for-screen.png"
+                alt="NVIDIA Inception Program"
+                className={styles.inceptionBadge}
+              />
             </div>
           </div>
 
           {/* Right Column: Links */}
           <div className={styles.rightCol}>
             <div className={styles.linkGroup}>
-              <h4 className={styles.groupHeader}>PRODUCT</h4>
+              <h4 className={styles.groupHeader}>Product</h4>
               <ul className={styles.linkList}>
-                <li><a href="/editor">Studio Editor</a></li>
-                <li><a href="/pricing">Pricing</a></li>
-                <li><a href="/about">About</a></li>
+                <li><Link to="/editor">Studio Editor</Link></li>
+                <li><Link to="/pricing">Pricing</Link></li>
+                <li><Link to="/about">About</Link></li>
                 <li>
                   <a href="https://github.com" target="_blank" rel="noreferrer" className={styles.extLink}>
-                    Pdyee Engine <ArrowUpRight size={13} />
+                    Pdyye Engine <ArrowUpRight size={13} aria-hidden="true" />
                   </a>
                 </li>
               </ul>
             </div>
 
             <div className={styles.linkGroup}>
-              <h4 className={styles.groupHeader}>LEGAL</h4>
+              <h4 className={styles.groupHeader}>Legal</h4>
               <ul className={styles.linkList}>
-                <li><a href="/privacy">Privacy</a></li>
-                <li><a href="/terms">Terms</a></li>
-                <li><a href="/print-specs">CMYK Specs</a></li>
-                <li><a href="/dpa">DPA</a></li>
+                <li><Link to="/privacy">Privacy</Link></li>
+                <li><Link to="/terms">Terms</Link></li>
+                <li><Link to="/print-specs">CMYK Specs</Link></li>
+                <li><Link to="/dpa">DPA</Link></li>
               </ul>
             </div>
           </div>
@@ -122,29 +74,29 @@ export default function Footer(): JSX.Element {
         {/* Bottom Legal / Status Bar */}
         <div className={styles.statusBar}>
           <div className={styles.statusMeta}>
-            <span>© 2026 PDYEE AI</span>
-            <span className={styles.dot}>•</span>
-            <span>PDYEE.AI</span>
-            <span className={styles.dot}>•</span>
-            <a href="mailto:hello@pdyee.ai" className={styles.emailLink}>
-              HELLO@PDYEE.AI
+            <span>© 2026 Pdyye AI</span>
+            <span className={styles.dot} aria-hidden="true">•</span>
+            <span>Pdyye.AI</span>
+            <span className={styles.dot} aria-hidden="true">•</span>
+            <a href="mailto:hello@Pdyye.ai" className={styles.emailLink}>
+              hello@Pdyye.AI
             </a>
-            <span className={styles.dot}>•</span>
-            <span>BUILT FOR CREATORS</span>
-            <span className={styles.dot}>•</span>
+            <span className={styles.dot} aria-hidden="true">•</span>
+            <span>Built for creators</span>
+            <span className={styles.dot} aria-hidden="true">•</span>
             <span className={styles.operationalStatus}>
-              <span className={styles.greenPulse}></span> ALL SYSTEMS OPERATIONAL
+              <span className={styles.greenPulse} aria-hidden="true"></span> All systems operational
             </span>
           </div>
 
           <p className={styles.disclaimerText}>
-            Pdyee AI is an independent vector graphic studio. All rights reserved for generated layer architectures.
+            Pdyye AI is an independent vector graphic studio. All rights reserved for generated layer architectures.
           </p>
         </div>
       </div>
 
       {/* Dotted Halftone Landscape Illustration at Bottom */}
-      <div className={styles.illustrationWrapper}>
+      <div className={styles.illustrationWrapper} aria-hidden="true">
         <svg
           viewBox="0 0 1440 320"
           fill="none"

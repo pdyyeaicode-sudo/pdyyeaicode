@@ -103,7 +103,7 @@ export function ExportMenu({ onExportSVG, onExportPNG, onExportPDF, buttonClassN
   const handleExport = () => {
     // Check if user is logged in
     const isLoggedIn = typeof window !== "undefined" && (
-      localStorage.getItem("pdyee_user_logged_in") === "true" ||
+      localStorage.getItem("Pdyye_user_logged_in") === "true" ||
       document.cookie.includes("__session") ||
       document.cookie.includes("__clerk")
     );

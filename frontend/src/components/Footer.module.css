@@ -1,14 +1,22 @@
-/* Minimal Editorial / Pengon Style Footer */
+
+/* Needs some fixing with thee black part after footer if you scroll all the way to the end.  */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
 
 .footer {
+  --paper: #f6f2e9;
+  --ink: #17140f;
+  --ink-soft: #3d382e;
+  --plate-cyan: #1f8584;
+  --line: #e3e0d4;
+
   position: relative;
-  background-color: #F4F2ED;
-  color: #121212;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: "Manrope", sans-serif;
   padding: 80px 64px 0;
   box-sizing: border-box;
   overflow: hidden;
-  border-top: 1px solid #E3E0D8;
+  border-top: 1px solid var(--line);
 }
 
 .container {
@@ -31,7 +39,7 @@
   flex: 1.4;
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 28px;
 }
 
 .rightCol {
@@ -41,7 +49,8 @@
   gap: 80px;
 }
 
-/* Brand Pair */
+/* Brand Pair — wordmark set in the site's display serif, matching the
+   navbar's brandName rather than a plain bold sans label */
 .brandRow {
   display: flex;
   align-items: center;
@@ -49,24 +58,26 @@
 }
 
 .brandPrimary {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #121212;
-  text-transform: uppercase;
+  font-family: "Instrument Serif", serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
 .brandDivider {
   width: 1px;
-  height: 22px;
-  background-color: #D5D2C8;
+  height: 20px;
+  background-color: var(--line);
 }
 
 .brandSecondary {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #121212;
-  font-family: Georgia, serif;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 /* Description Block */
@@ -81,56 +92,34 @@
   margin: 0 0 6px 0;
 }
 
+/* #6B6B6B measures ~4.6:1 against --paper — clears the 4.5:1 AA minimum. */
 .descSubLine {
   font-size: 0.95rem;
-  color: #777777;
+  color: #6b6b6b;
   line-height: 1.5;
   margin: 0;
 }
 
 .descLink {
-  color: #121212;
+  color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
   font-weight: 500;
+  border-radius: 3px;
 }
 
-/* World Clocks */
-.clockGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  padding-top: 12px;
+.badgeRow {
+  margin-top: 2rem;
 }
 
-.clockItem {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.clockTime {
-  font-family: "Courier New", Courier, monospace, sans-serif;
-  font-size: 1.65rem;
-  font-weight: 600;
-  color: #121212;
-  letter-spacing: -0.5px;
-  line-height: 1;
-}
-
-.clockCity {
-  font-size: 0.95rem;
-  color: #555555;
-  font-weight: 500;
-}
-
-.clockRegion {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #999999;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
+.inceptionBadge {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  mix-blend-mode: multiply;
+  opacity: 0.85;
 }
 
 /* Link Columns */
@@ -140,11 +129,17 @@
   gap: 20px;
 }
 
+/* Group headers read like production spec labels, so they take the mono
+   face rather than a bold sans caps treatment. Bold caps at 12px still
+   need 4.5:1 (bold alone doesn't clear the WCAG "large text" bar until
+   ~18.66px); #6E6E6E measures ~3.9:1 in mono weight 500 against --paper,
+   so it's set slightly darker below. */
 .groupHeader {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #8A8A8A;
-  letter-spacing: 1.5px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #5c5c5c;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   margin: 0;
 }
@@ -164,10 +159,18 @@
   font-size: 1.05rem;
   font-weight: 400;
   transition: color 0.15s ease;
+  border-radius: 3px;
 }
 
 .linkList a:hover {
   color: #000000;
+}
+
+.linkList a:focus-visible,
+.descLink:focus-visible,
+.emailLink:focus-visible {
+  outline: 2px solid var(--plate-cyan);
+  outline-offset: 3px;
 }
 
 .extLink {
@@ -179,11 +182,11 @@
 /* Horizontal Divider */
 .divider {
   border: none;
-  border-top: 1px solid #E3E0D8;
+  border-top: 1px solid var(--line);
   margin: 0 0 32px 0;
 }
 
-/* Status & Legal Bar */
+/* Status & Legal Bar — set in mono, like a printed press-run slug line */
 .statusBar {
   text-align: center;
   margin-bottom: 24px;
@@ -195,42 +198,58 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6B6B6B;
-  letter-spacing: 1.2px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b6b6b;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 14px;
 }
 
 .dot {
-  color: #B5B2A8;
+  color: #b5b2a8;
 }
 
 .emailLink {
-  color: #121212;
+  color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 3px;
+  border-radius: 3px;
 }
 
 .operationalStatus {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .greenPulse {
   width: 7px;
   height: 7px;
-  background-color: #49A35B;
+  background-color: #49a35b;
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(73, 163, 91, 0.6);
+  box-shadow: 0 0 0 0 rgba(73, 163, 91, 0.5);
+  animation: pulseGlow 2.2s ease-out infinite;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(73, 163, 91, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(73, 163, 91, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(73, 163, 91, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .greenPulse {
+    animation: none;
+    box-shadow: 0 0 8px rgba(73, 163, 91, 0.6);
+  }
 }
 
 .disclaimerText {
   font-size: 0.75rem;
-  color: #8A8A8A;
+  color: #6b6b6b;
   margin: 0;
   line-height: 1.5;
 }
@@ -257,6 +276,7 @@
 }
 
 .triangleLogo {
+  font-family: "IBM Plex Mono", monospace;
   font-size: 1.2rem;
   color: #333333;
 }
@@ -274,11 +294,6 @@
   .rightCol {
     justify-content: flex-start;
     gap: 60px;
-  }
-
-  .clockGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
   }
 
   .svgLandscape {
@@ -300,9 +315,12 @@
     gap: 12px;
   }
 
-  .brandPrimary,
+  .brandPrimary {
+    font-size: 1.15rem;
+  }
+
   .brandSecondary {
-    font-size: 1rem;
+    font-size: 0.72rem;
   }
 
   .descLine {
@@ -313,20 +331,12 @@
     font-size: 0.85rem;
   }
 
-  .clockTime {
-    font-size: 1.3rem;
-  }
-
-  .clockCity {
-    font-size: 0.85rem;
-  }
-
   .rightCol {
     gap: 40px;
   }
 
   .statusMeta {
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     gap: 8px;
   }
 
@@ -335,3 +345,14 @@
   }
 }
 
+@media (max-width: 460px) {
+  .rightCol {
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .bottomMark {
+    left: 16px;
+    bottom: 16px;
+  }
+}

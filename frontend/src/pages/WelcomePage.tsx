@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Layers, Sparkles, Sliders, Printer } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ChatComposer,
   ChatComposerInput,
@@ -9,8 +10,55 @@ import {
 import { FollowerPointerCard } from "../components/ui/FollowerPointer";
 import CenteredTopNav from "../components/CenteredTopNav";
 import Footer from "../components/Footer";
+import { useReveal } from "../hooks/useReveal";
 
 import styles from "./WelcomePage.module.css";
+
+/**
+ * Plays once, when scrolled into view: three plates start stacked flat
+ * and separate into background / subject / text, then stay put. This is
+ * the one job the motion has to do: show a first-time visitor what
+ * "arrives already separated into layers" actually means. Not a pinned
+ * scroll sequence: normal section height, nothing hijacks scrolling, and
+ * everything here is decorative (the real content is the heading and
+ * copy beside it), so it's marked aria-hidden rather than competing with
+ * a screen reader's reading order. Respects reduced-motion by rendering
+ * straight into the final, separated state with no animation at all.
+ */
+function LayerPeelStage(): JSX.Element {
+  const prefersReducedMotion = useReducedMotion();
+
+  const layers = [
+    { key: "bg", className: styles.peelLayerBg, label: "Background", final: { x: -78, y: 34, rotate: -11 } },
+    { key: "mid", className: styles.peelLayerMid, label: "Subject", final: { x: 66, y: -30, rotate: 9 } },
+    { key: "front", className: styles.peelLayerFront, label: "Text", final: { x: 0, y: 0, rotate: 0 } },
+  ];
+
+  return (
+    <div className={styles.peelStage} aria-hidden="true">
+      {layers.map((layer, i) => (
+        <motion.div
+          key={layer.key}
+          className={layer.className}
+          initial={prefersReducedMotion ? false : { x: 0, y: 0, rotate: 0 }}
+          whileInView={prefersReducedMotion ? undefined : layer.final}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+          style={prefersReducedMotion ? layer.final : undefined}
+        >
+          {layer.key === "front" ? (
+            <>
+              <img src="/logo.png" alt="" className={styles.peelLayerFrontImg} />
+              <span className={styles.peelLabel}>Text</span>
+            </>
+          ) : (
+            <span className={styles.peelLabel}>{layer.label}</span>
+          )}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
 export default function WelcomePage(): JSX.Element {
   const navigate = useNavigate();
@@ -20,22 +68,31 @@ export default function WelcomePage(): JSX.Element {
     navigate("/editor?new=1");
   };
 
+  const showcase = useReveal<HTMLDivElement>();
+  const transition = useReveal<HTMLElement>();
+  const galleryHeader = useReveal<HTMLDivElement>();
+  const card1 = useReveal<HTMLDivElement>();
+  const card2 = useReveal<HTMLDivElement>();
+  const card3 = useReveal<HTMLDivElement>();
+
   return (
     <main className={styles.page}>
-      {/* Top Centered Floating Navbar (No box around app, text logo) */}
       <CenteredTopNav />
-      
+
       {/* SECTION 1: HERO */}
       <section className={styles.hero}>
-        <div className={styles.heroHeader}>
-          <img className={styles.logo} src="/logo.png" alt="Dreamer Logo" />
+        <div className={`${styles.heroHeader} ${styles.reveal}`}>
+          <img className={styles.logo} src="/logo.png" alt="Pdyye logo mark" />
           <h1 className={styles.heroHeadline}>
-            Convert your Imagination<br />
+            Convert your imagination<br />
             into <span className={styles.serifItalic}>layers</span>
           </h1>
         </div>
 
-        <div className={styles.chatContainer}>
+        <div
+          className={`${styles.chatContainer} ${styles.cropFrame} ${styles.reveal}`}
+          style={{ animationDelay: "0.12s" }}
+        >
           <ChatComposer
             onSubmit={handleSubmit}
             sendButton={<></>}
@@ -43,7 +100,7 @@ export default function WelcomePage(): JSX.Element {
             input={
               <ChatComposerInput
                 handleRef={composerInputRef}
-                style={{ minHeight: 80, fontSize: '1.125rem' }}
+                style={{ minHeight: 80, fontSize: "1.125rem" }}
               />
             }
             sendActions={
@@ -56,33 +113,51 @@ export default function WelcomePage(): JSX.Element {
         </div>
       </section>
 
-      {/* SECTION 2: SHOWCASE / FEATURES */}
+      {/* SECTION 2: SHOWCASE */}
       <section id="showcase" className={styles.showcaseWrapper}>
-        <div className={styles.showcaseTextPanel}>
+        <div
+          ref={showcase.ref}
+          className={`${styles.showcaseTextPanel} ${styles.scrollReveal} ${showcase.inView ? styles.inView : ""}`}
+        >
           <h2 className={`${styles.showcaseHeadline} ${styles.serifRegular}`}>
-            Generate once.<br />
-            Instantly edit<br />
-            and exactly the<br />
-            way you need.
+            Every image arrives<br />
+            already broken<br />
+            into layers.
           </h2>
         </div>
         <div className={styles.showcasePreview}>
-          <FollowerPointerCard title="Harsh" className={styles.pointerWrapper}>
-            <img className={styles.showcaseImage} src="/ui-screenshot.png" alt="Pdyee Editor Interface" />
+          <FollowerPointerCard title="Open the layers" className={styles.pointerWrapper}>
+            <img className={styles.showcaseImage} src="/ui-screenshot.png" alt="Pdyye editor interface" />
           </FollowerPointerCard>
         </div>
       </section>
 
       {/* SECTION 3: TRANSITION */}
-      <section className={styles.transition}>
+      <section
+        ref={transition.ref}
+        className={`${styles.transition} ${styles.scrollReveal} ${transition.inView ? styles.inView : ""}`}
+      >
+        <span className={styles.galleryBadge}>Why waste a token?</span>
         <h2 className={styles.transitionHeading}>
-          Why to waste your Token!
+          Fix the typo.<br />
+          Not the entire image.
         </h2>
+        <div className={styles.correctionMark} aria-hidden="true">
+          <span className={styles.correctionOld}>recieve</span>
+          <ArrowRight size={14} className={styles.correctionArrow} />
+          <span className={styles.correctionNew}>received</span>
+        </div>
+        <p className={styles.gallerySubtitle}>
+          Text, color, and shape stay editable long after the pixels are generated.
+        </p>
       </section>
 
-      {/* SECTION 4: PRODUCT GALLERY (Astryx Product Gallery Template) */}
+      {/* SECTION 4: PRODUCT GALLERY */}
       <section className={styles.productGallerySection}>
-        <div className={styles.galleryHeader}>
+        <div
+          ref={galleryHeader.ref}
+          className={`${styles.galleryHeader} ${styles.scrollReveal} ${galleryHeader.inView ? styles.inView : ""}`}
+        >
           <span className={styles.galleryBadge}>Layer Decompose Gallery</span>
           <h2 className={styles.galleryTitle}>
             Turn prompt ideas into<br />
@@ -94,8 +169,13 @@ export default function WelcomePage(): JSX.Element {
         </div>
 
         <div className={styles.productGrid}>
-          {/* Card 1 */}
-          <div className={styles.productCard} onClick={() => navigate("/editor")}>
+          <div
+            ref={card1.ref}
+            className={`${styles.productCard} ${styles.scrollReveal} ${card1.inView ? styles.inView : ""}`}
+            onClick={() => navigate("/editor")}
+            role="button"
+            tabIndex={0}
+          >
             <div className={styles.cardImageWrapper}>
               <img
                 src="/galaxy-login-bg.jpg"
@@ -112,8 +192,14 @@ export default function WelcomePage(): JSX.Element {
             </div>
           </div>
 
-          {/* Card 2 */}
-          <div className={styles.productCard} onClick={() => navigate("/editor")}>
+          <div
+            ref={card2.ref}
+            className={`${styles.productCard} ${styles.scrollReveal} ${card2.inView ? styles.inView : ""}`}
+            style={{ transitionDelay: card2.inView ? "0.08s" : "0s" }}
+            onClick={() => navigate("/editor")}
+            role="button"
+            tabIndex={0}
+          >
             <div className={styles.cardImageWrapper}>
               <img
                 src="/ui-screenshot.png"
@@ -130,8 +216,14 @@ export default function WelcomePage(): JSX.Element {
             </div>
           </div>
 
-          {/* Card 3 */}
-          <div className={styles.productCard} onClick={() => navigate("/editor")}>
+          <div
+            ref={card3.ref}
+            className={`${styles.productCard} ${styles.scrollReveal} ${card3.inView ? styles.inView : ""}`}
+            style={{ transitionDelay: card3.inView ? "0.16s" : "0s" }}
+            onClick={() => navigate("/editor")}
+            role="button"
+            tabIndex={0}
+          >
             <div className={styles.cardImageWrapper}>
               <img
                 src="/hero-image.svg"
@@ -150,18 +242,22 @@ export default function WelcomePage(): JSX.Element {
         </div>
       </section>
 
-      {/* SECTION 5: SIDE GALLERY (Astryx Side Gallery Template) */}
+      {/* SECTION 5: WHY IT MATTERS. The layer-peel illustration is
+          decorative (aria-hidden); the actual content is this text. */}
       <section className={styles.sideGallerySection}>
         <div className={styles.sideContainer}>
-          {/* Left Column */}
           <div className={styles.sideLeft}>
-            <span className={styles.sideBadge}>CREATIVE PREVIEWS</span>
+            <span className={styles.sideBadge}>The Pdyye Difference</span>
             <h2 className={styles.sideTitle}>
-              Generate once.<br />
-              Tweak & refine forever.
+              Built for endless<br />
+              iteration, not endless<br />
+              regeneration.
             </h2>
             <p className={styles.sideDesc}>
-              Traditional AI image tools lock you into flat, static pixels. Pdyee AI preserves every stroke, text node, and background element in editable vector layers.
+              Traditional AI image tools lock you into flat, static pixels.
+              Pdyye preserves every stroke, text node, and background
+              element in editable vector layers, the way the illustration
+              beside this text separates on scroll.
             </p>
 
             <div className={styles.statsRow}>
@@ -180,36 +276,11 @@ export default function WelcomePage(): JSX.Element {
             </div>
           </div>
 
-          {/* Right Column Grid */}
-          <div className={styles.sideGrid}>
-            <img
-              src="/galaxy-login-bg.jpg"
-              alt="Anime Galaxy Wallpaper"
-              className={styles.sideGridImg}
-            />
-            <img
-              src="/ui-screenshot.png"
-              alt="Pdyee AI Studio Interface"
-              className={styles.sideGridImg}
-            />
-            <img
-              src="/logo.png"
-              alt="Pdyee Logo Art"
-              className={styles.sideGridImg}
-              style={{ objectFit: "contain", background: "rgba(255,255,255,0.05)", padding: "1.5rem" }}
-            />
-            <img
-              src="/hero-image.svg"
-              alt="Vector Background Asset"
-              className={styles.sideGridImg}
-            />
-          </div>
+          <LayerPeelStage />
         </div>
       </section>
 
-      {/* SECTION 6: PENGON STYLE MINIMAL EDITORIAL FOOTER */}
       <Footer />
-
     </main>
   );
 }

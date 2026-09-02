@@ -1,26 +1,108 @@
-/* WelcomePage.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
-/* --- Base & Typography System --- */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+
 .page {
-  font-family: "Inter", "Avenir", sans-serif;
-  color: #1a1a1a;
+  --paper: #f6f2e9;
+  --paper-dim: #ece5d3;
+  --ink: #17140f;
+  --ink-soft: #3d382e;
+  --void: #0d0c0b;
+  --void-soft: #151411;
+  --line: rgba(23, 20, 15, 0.12);
+  --line-dark: rgba(246, 242, 233, 0.12);
+  --plate-blue: #3d6fe0;
+  --plate-red: #ff4432;
+  --plate-red-dim: rgba(255, 68, 50, 0.14);
+  --plate-blue-dim: rgba(61, 111, 224, 0.14);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  font-family: "Manrope", sans-serif;
+  color: var(--ink);
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-  background-color: #f7f5f0; /* Default beige behind everything */
+  background-color: var(--paper);
 }
 
-/* Typography styles */
 .serifItalic {
-  font-family: "Instrument Serif", "Playfair Display", Georgia, serif;
+  font-family: "Instrument Serif", serif;
   font-style: italic;
   font-weight: 400;
 }
 
 .serifRegular {
-  font-family: "Instrument Serif", "Playfair Display", Georgia, serif;
+  font-family: "Instrument Serif", serif;
   font-weight: 400;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 0.02em;
+}
+
+/* --- Signature: crop frame --- */
+.cropFrame {
+  position: relative;
+}
+
+.cropFrame::before {
+  content: "";
+  position: absolute;
+  inset: -16px;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink), var(--ink)), linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)), linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)), linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)), linear-gradient(var(--ink), var(--ink));
+  background-size: 16px 2px, 2px 16px, 16px 2px, 2px 16px, 16px 2px, 2px 16px, 16px 2px, 2px 16px;
+  background-position: top left, top left, top right, top right, bottom left, bottom left, bottom right, bottom right;
+  opacity: 0.5;
+}
+
+.cropFrameLight::before {
+  background-image:
+    linear-gradient(var(--paper), var(--paper)), linear-gradient(var(--paper), var(--paper)),
+    linear-gradient(var(--paper), var(--paper)), linear-gradient(var(--paper), var(--paper)),
+    linear-gradient(var(--paper), var(--paper)), linear-gradient(var(--paper), var(--paper)),
+    linear-gradient(var(--paper), var(--paper)), linear-gradient(var(--paper), var(--paper));
+  opacity: 0.35;
+}
+
+/* --- Motion --- */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  animation: riseIn 0.7s var(--ease) both;
+}
+
+/* Scroll reveal. Off-screen sections start slightly lower and faded;
+   .inView is added by useReveal the moment they cross into the
+   viewport, once, and never again. Kept short and small so it reads as
+   polish rather than a slideshow. */
+.scrollReveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+}
+
+.scrollReveal.inView {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+  .scrollReveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  * { scroll-behavior: auto !important; }
 }
 
 /* --- Section 1: Hero --- */
@@ -35,111 +117,58 @@
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
-  padding-top: 3.5rem;
-  padding-bottom: 5rem; /* Ensures plenty of space between chat box and transition section */
+  padding-top: 6.5rem;
+  padding-bottom: 5rem;
   z-index: 1;
   filter: contrast(1.05) saturate(1.06);
 }
-
-.topNavbar {
-  position: absolute;
-  top: 1.5rem;
-  right: 2.5rem;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.navAuthGroup {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.pricingNavBtn {
-  background: transparent;
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 50px;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
-}
-
-.pricingNavBtn:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-}
-
-/* Figma Design System Button - Black Pill CTA */
-.figmaLoginBtn {
-  background-color: #000000;
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: -0.10px;
-  border-radius: 50px;
-  padding: 10px 24px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.figmaLoginBtn:hover {
-  background-color: #1a1a1a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-}
-
-.figmaLoginBtn:active {
-  transform: translateY(0);
-}
-
-/* Clean hero section without overlay line artifacts */
 
 .heroHeader {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  margin-bottom: 2rem; /* Move chat container higher up */
+  margin-bottom: 2rem;
   z-index: 1;
 }
 
 .logo {
-  width: 5rem;
-  height: 5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   object-fit: contain;
-  margin-top: 3.5rem; /* Lower ONLY the logo */
+}
+
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
 }
 
 .heroHeadline {
-  font-size: clamp(2.4rem, 4.8vw, 4.2rem); /* 1 size smaller to prevent breaking */
-  font-weight: 600;
-  color: #404040;
+  font-family: "Instrument Serif", serif;
+  font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+  font-weight: 400;
+  color: var(--ink-soft);
   text-align: center;
   line-height: 1.15;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   max-width: 950px;
   white-space: normal;
 }
 
-/* New wrapper for the AI Chat Prompt */
 .chatContainer {
   width: min(90%, 600px);
   z-index: 2;
-  /* Add some subtle shadow to pop off the background */
+  padding: 8px;
   filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15));
 }
 
-/* Custom overrides for the Astryx ChatComposer to make it flat */
 .chatContainer :global(.astryx-chat-composer) {
   border: none !important;
   box-shadow: none !important;
@@ -154,33 +183,58 @@
   box-shadow: none !important;
 }
 
-/* Guarantee no secondary/default send button is shown */
 .chatContainer :global(.astryx-chat-composer button:not([class*="ctaButton"])) {
   display: none !important;
+}
+
+.ctaButton {
+  background-color: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 2rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease);
+}
+
+.ctaButton:hover {
+  background-color: #000;
+}
+
+.ctaButton:focus-visible {
+  outline: 2px solid var(--plate-blue);
+  outline-offset: 2px;
 }
 
 /* --- Section 2: Showcase --- */
 .showcaseWrapper {
   position: relative;
-  background-color: #121212;
+  background-color: var(--void-soft);
   display: flex;
   flex-direction: row;
   min-height: 80vh;
-  margin-top: -1px; /* seamless connection */
+  margin-top: -1px;
   z-index: 2;
 }
 
 .showcaseTextPanel {
   flex: 1;
-  background-color: #121212;
+  background-color: var(--void-soft);
   display: flex;
   align-items: center;
   padding: 4rem;
 }
 
 .showcaseHeadline {
-  color: #f7f7f7;
+  font-family: "Instrument Serif", serif;
+  color: var(--paper);
   font-size: clamp(2.5rem, 4.5vw, 4rem);
+  font-weight: 400;
   line-height: 1.3;
   margin: 0;
   max-width: 500px;
@@ -188,13 +242,10 @@
 
 .showcasePreview {
   flex: 1.5;
-  background-color: #121212;
+  background-color: var(--void-soft);
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  /* Removed top padding to let the image cover the area fully */
-  padding-top: 0; 
-  padding-right: 0;
   overflow: hidden;
 }
 
@@ -204,98 +255,89 @@
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+  cursor: none;
+  isolation: isolate;
+}
+
+.pointerWrapper * {
+  cursor: none;
 }
 
 .showcaseImage {
   width: 100%;
   height: 100%;
-  border-radius: 0; /* Sharp square corners as requested */
-  box-shadow: -10px -10px 40px rgba(0,0,0,0.5);
+  border-radius: 0;
   object-fit: cover;
   object-position: left center;
 }
 
 /* --- Section 3: Transition --- */
 .transition {
-  background-color: #e6e3da; 
+  position: relative;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 110%, rgba(61, 111, 224, 0.14), transparent 65%),
+    var(--void);
   min-height: 40vh;
-  display: flex;
-  justify-content: center;
-  padding-top: 6rem;
-}
-
-.transitionHeading {
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  color: #5a5a5a;
-  font-weight: 500;
-  margin: 0;
-  text-align: center;
-}
-
-/* --- Section 4: Ending --- */
-.ending {
-  background-color: #e6e3da; 
-  min-height: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 2rem;
+  justify-content: center;
+  gap: 1.75rem;
+  padding: 5rem 2rem;
+  text-align: center;
+  border-top: 1px solid var(--line-dark);
+  overflow: hidden;
 }
 
-/* Responsive Stacking */
-@media (max-width: 900px) {
-  .showcaseWrapper {
-    flex-direction: column;
-  }
-  
-  .showcaseTextPanel {
-    padding: 3rem 2rem;
-  }
-  
-  .showcasePreview {
-    padding: 0;
-    justify-content: center;
-    height: 50vh; /* give it explicit height on mobile */
-  }
-  
-  .heroHeadline {
-    font-size: 3rem;
-  }
-  
-  .chatContainer {
-    width: 95%;
-  }
+.transitionHeading {
+  font-family: "Instrument Serif", serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 400;
+  color: var(--paper);
+  margin: 0;
+  max-width: 700px;
 }
 
-.ctaButton {
-  background-color: #222;
-  color: #fff;
-  border: none;
-  border-radius: 2rem;
-  padding: 0.75rem 1.5rem;
-  font-size: 1.125rem;
-  font-weight: 500;
-  display: flex;
+.correctionMark {
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
-  margin-right: 0; /* Align cleanly to the right edge */
+  gap: 0.65rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+  padding: 0.65rem 1.2rem;
+  border: 1px dashed var(--line-dark);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transform: rotate(-1.5deg);
 }
 
-.ctaButton:hover {
-  background-color: #000;
-  transform: translateY(-2px);
+.correctionOld {
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: line-through;
+  text-decoration-color: var(--plate-red);
+  text-decoration-thickness: 1.5px;
 }
 
-/* --- Section 4: Product Gallery Section --- */
+.correctionNew {
+  color: var(--plate-blue);
+  font-weight: 500;
+}
+
+.correctionArrow {
+  color: rgba(255, 255, 255, 0.35);
+  display: inline-flex;
+}
+
+/* --- Section 4: Product Gallery (plate: blue) --- */
 .productGallerySection {
-  background-color: #0d0d0f;
+  background-color: var(--void);
   color: #ffffff;
   padding: 6rem 2rem;
   z-index: 2;
   position: relative;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--line-dark);
 }
 
 .galleryHeader {
@@ -305,26 +347,29 @@
 }
 
 .galleryBadge {
-  display: inline-block;
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
-  border: 1px solid rgba(165, 180, 252, 0.3);
-  font-size: 0.8rem;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  background: var(--plate-blue-dim);
+  color: var(--plate-blue);
+  border: 1px solid rgba(61, 111, 224, 0.3);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
   padding: 4px 14px;
   border-radius: 999px;
   margin-bottom: 1.25rem;
-  letter-spacing: 1px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .galleryTitle {
+  font-family: "Instrument Serif", serif;
   font-size: clamp(2.2rem, 4vw, 3.4rem);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.15;
   color: #ffffff;
   margin: 0 0 1.25rem 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .gallerySubtitle {
@@ -349,13 +394,13 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  transition: border-color 0.25s ease;
 }
 
-.productCard:hover {
-  transform: translateY(-6px);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+.productCard:hover,
+.productCard:focus-visible {
+  border-color: rgba(61, 111, 224, 0.35);
 }
 
 .cardImageWrapper {
@@ -369,11 +414,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.4s var(--ease);
 }
 
 .productCard:hover .cardImage {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 .cardTag {
@@ -382,9 +427,11 @@
   right: 12px;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
-  color: #a5b4fc;
-  font-size: 0.75rem;
-  font-weight: 600;
+  color: var(--plate-blue);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   padding: 4px 10px;
   border-radius: 50px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -398,7 +445,7 @@
 }
 
 .cardTitle {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #ffffff;
   margin: 0;
@@ -411,14 +458,16 @@
   margin: 0;
 }
 
-/* --- Section 5: Side Gallery Section --- */
+/* --- Section 5: Side Gallery. The layer-peel illustration plays once,
+   when it scrolls into view, then holds its final state. Normal section
+   height, no pinning, nothing here is required to understand the page.
+   it's a decorative reinforcement of the text beside it. */
 .sideGallerySection {
-  background-color: #121215;
+  background-color: var(--void-soft);
   color: #ffffff;
   padding: 6rem 2rem;
-  z-index: 2;
   position: relative;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--line-dark);
 }
 
 .sideContainer {
@@ -436,21 +485,90 @@
   gap: 2rem;
 }
 
+.peelStage {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  aspect-ratio: 4 / 3.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.peelLayer {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 74%;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+.peelLayerBg {
+  composes: peelLayer;
+  background: linear-gradient(155deg, #5c8aec 0%, var(--plate-blue) 60%);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+}
+
+.peelLayerMid {
+  composes: peelLayer;
+  background: linear-gradient(155deg, #ff6b57 0%, var(--plate-red) 60%);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+}
+
+.peelLayerFront {
+  composes: peelLayer;
+  background: var(--paper);
+  z-index: 2;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+}
+
+.peelLayerFrontImg {
+  width: 30%;
+  object-fit: contain;
+}
+
+.peelLabel {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.peelLayerFront .peelLabel {
+  color: var(--ink-soft);
+}
+
 .sideBadge {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #a5b4fc;
-  letter-spacing: 1.5px;
+  display: inline-flex;
+  align-items: center;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--plate-red);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .sideTitle {
+  font-family: "Instrument Serif", serif;
   font-size: clamp(2.2rem, 3.8vw, 3.2rem);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.15;
   color: #ffffff;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .sideDesc {
@@ -474,8 +592,9 @@
 }
 
 .statVal {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.6rem;
+  font-weight: 500;
   color: #ffffff;
 }
 
@@ -484,26 +603,30 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-.sideGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.sideGridImg {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 14px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  transition: transform 0.2s ease;
-}
-
-.sideGridImg:hover {
-  transform: scale(1.03);
-}
-
+/* Responsive */
 @media (max-width: 900px) {
+  .showcaseWrapper {
+    flex-direction: column;
+  }
+
+  .showcaseTextPanel {
+    padding: 3rem 2rem;
+  }
+
+  .showcasePreview {
+    padding: 0;
+    justify-content: center;
+    height: 50vh;
+  }
+
+  .heroHeadline {
+    font-size: 3rem;
+  }
+
+  .chatContainer {
+    width: 95%;
+  }
+
   .productGrid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -512,6 +635,11 @@
   .sideContainer {
     grid-template-columns: 1fr;
     gap: 3rem;
+  }
+
+  .peelStage {
+    max-width: 340px;
+    margin: 0 auto;
   }
 
   .productGallerySection,
@@ -527,14 +655,13 @@
 
 @media (max-width: 640px) {
   .hero {
-    padding-top: 5rem;
+    padding-top: 6rem;
     padding-bottom: 3.5rem;
   }
 
   .logo {
-    width: 3.8rem;
-    height: 3.8rem;
-    margin-top: 2rem;
+    width: 3.6rem;
+    height: 3.6rem;
   }
 
   .heroHeadline {
@@ -571,16 +698,4 @@
   .sideDesc {
     font-size: 0.95rem;
   }
-
-  .sideGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .sideGridImg {
-    height: 160px;
-  }
 }
-
-
-
-

@@ -10,6 +10,11 @@ import LoginPage from "./pages/login-split/page";
 import PricingPage from "./pages/PricingPage";
 import AboutPage from "./pages/AboutPage";
 
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/Termspage";
+import CmykSpecsPage from "./pages/Cmykspecspage";
+import DpaPage from "./pages/DpaPage";
+
 const PydreeStudio = lazy(() => import("./pydree/PydreeStudio"));
 
 /**
@@ -19,7 +24,7 @@ const PydreeStudio = lazy(() => import("./pydree/PydreeStudio"));
  * /          Landing page (home)
  * /login     Clerk Split Login page
  * /pricing   India Pricing & Razorpay checkout
- * /about     About Pdyee AI company & product
+ * /about     About Pdyye AI company & product
  * /editor    Canvas editor
  */
 interface AppProps {
@@ -82,6 +87,10 @@ function AnimatedRoutes({ isAuthenticationConfigured }: { isAuthenticationConfig
           <Route path="/templates" element={<Navigate to="/dashboard" replace />} />
           <Route path="/help" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/privacy" element={<PageWrapper><PrivacyPage /></PageWrapper>} />
+          <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
+          <Route path="/print-specs" element={<PageWrapper><CmykSpecsPage /></PageWrapper>} />
+          <Route path="/dpa" element={<PageWrapper><DpaPage /></PageWrapper>} />
         </Routes>
       </AnimatePresence>
     </SmoothScroller>

@@ -38,7 +38,7 @@ export function loadRazorpayScript(): Promise<boolean> {
 }
 
 /**
- * Triggers Razorpay Checkout modal for Pdyee AI plan upgrade.
+ * Triggers Razorpay Checkout modal for Pdyye AI plan upgrade.
  */
 export async function openRazorpayCheckout(options: CheckoutOptions): Promise<void> {
   const isLoaded = await loadRazorpayScript();
@@ -51,14 +51,14 @@ export async function openRazorpayCheckout(options: CheckoutOptions): Promise<vo
     key: RAZORPAY_KEY_ID,
     amount: options.amountInPaise, // e.g. 29900 paise = ₹299
     currency: "INR",
-    name: "Pdyee AI",
-    description: `Upgrade to Pdyee ${options.planName} (${options.billingCycle})`,
+    name: "Pdyye AI",
+    description: `Upgrade to Pdyye ${options.planName} (${options.billingCycle})`,
     image: "/logo.png",
     handler: function (response: { razorpay_payment_id: string }) {
       // Save subscription info in localStorage
-      localStorage.setItem("pdyee_user_plan", options.planName);
-      localStorage.setItem("pdyee_user_billing", options.billingCycle);
-      localStorage.setItem("pdyee_user_logged_in", "true");
+      localStorage.setItem("Pdyye_user_plan", options.planName);
+      localStorage.setItem("Pdyye_user_billing", options.billingCycle);
+      localStorage.setItem("Pdyye_user_logged_in", "true");
       options.onSuccess(response.razorpay_payment_id);
     },
     prefill: {

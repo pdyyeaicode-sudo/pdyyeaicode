@@ -1,25 +1,29 @@
-/* DashboardPage.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Pdyye. Structural rework, not just a color pass: the Canva-shaped
+   gradient hero banner and six-icon quick-action row are gone, replaced
+   by a compact prompt bar (I plan to change this). Thumbnails read as plates: registration ticks on
+   hover, mono metadata instead of colored gradient tiles. No button
+   drop shadows. */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
 
 .appContainer {
   display: flex;
   flex-direction: row;
   height: 100vh;
-  background-color: var(--p-bg-0, #0a0a0c);
-  color: var(--p-fg-0, #ffffff);
-  font-family: 'Inter', sans-serif;
+  background-color: var(--p-bg-0, #0d0c0b);
+  color: var(--p-fg-0, #f6f2e9);
+  font-family: "Manrope", sans-serif;
   overflow: hidden;
 }
 
 .lightMode {
-  --p-bg-0: #f5f6f8;
+  --p-bg-0: #f6f2e9;
   --p-bg-1: #ffffff;
-  --p-bg-2: #e5e7eb;
-  --p-bg-3: #d1d5db;
-  --p-fg-0: #111827;
-  --p-fg-1: #374151;
-  --p-fg-2: #6b7280;
-  --p-line: #e5e7eb;
+  --p-bg-2: #ece5d3;
+  --p-bg-3: #ddd4bd;
+  --p-fg-0: #17140f;
+  --p-fg-1: #3d382e;
+  --p-fg-2: #7a7364;
+  --p-line: rgba(23, 20, 15, 0.12);
 }
 
 .lightMode .bellIcon {
@@ -30,30 +34,53 @@
 .desktopSidebar {
   display: none;
   width: 250px;
-  background-color: var(--p-bg-1, #121215);
-  border-right: 1px solid var(--p-line, #2a2a35);
+  background-color: var(--p-bg-1, #151411);
+  border-right: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
   flex-direction: column;
   padding: 20px;
-  gap: 24px;
+  gap: 20px;
   flex-shrink: 0;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebarLogo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.brandWordmark {
+  font-family: "Instrument Serif", serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--p-fg-0, #ffffff);
 }
 
 .sidebarHeader {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
 }
 
 .userName {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--p-fg-1, rgba(246, 242, 233, 0.65));
 }
 
 .createDesignBtn {
-  background-color: #6366f1;
-  color: white;
+  background-color: #3d6fe0;
+  color: #0d0c0b;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   padding: 12px 16px;
   font-weight: 600;
   font-size: 14px;
@@ -62,39 +89,49 @@
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.2s ease;
 }
 
 .createDesignBtn:hover {
-  background-color: #4f46e5;
+  background-color: #5c8aec;
+}
+
+.navLabel {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.35));
+  margin-top: 4px;
 }
 
 .sidebarNav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .sideItem {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 9px 10px 9px 12px;
+  border-left: 2px solid transparent;
   cursor: pointer;
-  color: var(--p-fg-1, #e0e0e0);
+  color: var(--p-fg-1, rgba(246, 242, 233, 0.6));
   font-size: 14px;
   font-weight: 500;
-  transition: background 0.2s;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .sideItem:hover {
-  background: var(--p-bg-2, #18181c);
+  color: var(--p-fg-0, #ffffff);
 }
 
 .sideActive {
-  background: var(--p-bg-2, #18181c);
-  color: #fff;
+  border-left-color: #3d6fe0;
+  color: var(--p-fg-0, #ffffff);
 }
 
 /* RIGHT WORKSPACE AREA */
@@ -111,8 +148,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--p-bg-1, #121215);
-  border-bottom: 1px solid var(--p-line, #2a2a35);
+  background: var(--p-bg-1, #151411);
+  border-bottom: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
   height: 60px;
   flex-shrink: 0;
 }
@@ -124,7 +161,7 @@
 }
 
 .headerLogo {
-  height: 28px;
+  height: 26px;
   width: auto;
 }
 
@@ -138,8 +175,8 @@
 .searchBar {
   display: flex;
   align-items: center;
-  background: var(--p-bg-2, #18181c);
-  border: 1px solid var(--p-line, #2a2a35);
+  background: var(--p-bg-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
   border-radius: 99px;
   padding: 8px 16px;
   width: 100%;
@@ -148,51 +185,51 @@
 }
 
 .searchIcon {
-  color: var(--p-fg-2, #8b8b93);
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.4));
 }
 
 .searchInput {
   background: transparent;
   border: none;
-  color: var(--p-fg-0, #ffffff);
+  color: var(--p-fg-0, #f6f2e9);
   font-size: 14px;
   width: 100%;
   outline: none;
 }
 
 .searchInput::placeholder {
-  color: var(--p-fg-2, #8b8b93);
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.4));
 }
 
 .themeToggle {
   background: transparent;
   border: none;
-  color: var(--p-fg-1, #e0e0e0);
+  color: var(--p-fg-1, rgba(246, 242, 233, 0.7));
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 8px;
   border-radius: 50%;
-  transition: background 0.2s;
+  transition: background-color 0.2s ease;
 }
 
 .themeToggle:hover {
-  background: var(--p-bg-2, #18181c);
+  background: var(--p-bg-2, rgba(255, 255, 255, 0.04));
 }
 
 .avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
+  background: #3d6fe0;
 }
 
 /* SCROLLABLE MAIN CONTENT */
 .appMain {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 80px; /* Space for bottom nav on mobile */
+  padding-bottom: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -205,104 +242,93 @@
   flex-direction: column;
 }
 
-/* HERO SECTION */
-.heroSection {
+/* JOB BAR. Replaces the gradient hero banner and the six-icon
+   quick-action row with one compact, prompt-first input, matching how
+   the product actually works instead of a generic tool-picker. */
+.jobBarSection {
   padding: 16px;
+  animation: dashFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.heroCard {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  border-radius: 20px;
-  padding: 24px;
+@keyframes dashFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jobBarSection { animation: none; }
+}
+
+.jobBar {
+  position: relative;
+  background: var(--p-bg-1, #151411);
+  border: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
+  border-radius: 16px;
+  padding: 8px 8px 8px 18px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
 }
 
-.heroHeadline {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.heroSub {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0 0 8px 0;
-}
-
-.heroCta {
-  background: #ffffff;
-  color: #4f46e5;
+.jobInput {
+  flex: 1;
+  background: transparent;
   border: none;
-  border-radius: 99px;
-  padding: 12px 20px;
+  outline: none;
+  color: var(--p-fg-0, #f6f2e9);
+  font-family: "Manrope", sans-serif;
+  font-size: 15px;
+  min-width: 0;
+}
+
+.jobInput::placeholder {
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.4));
+}
+
+.jobActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.jobIconBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: var(--p-fg-1, rgba(246, 242, 233, 0.6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.jobIconBtn:hover {
+  background: var(--p-bg-2, rgba(255, 255, 255, 0.05));
+  color: var(--p-fg-0, #ffffff);
+}
+
+.jobGenerateBtn {
+  background: #3d6fe0;
+  color: #0d0c0b;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  align-self: flex-start;
+  gap: 6px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: background-color 0.2s ease;
+  margin-left: 4px;
 }
 
-.heroCta:active {
-  transform: scale(0.97);
-}
-
-/* QUICK ACTIONS ROW */
-.quickActions {
-  display: flex;
-  overflow-x: auto;
-  gap: 16px;
-  padding: 8px 16px 24px 16px;
-  scrollbar-width: none;
-}
-
-.quickActions::-webkit-scrollbar {
-  display: none;
-}
-
-.quickActionItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  min-width: 72px;
-  cursor: pointer;
-}
-
-.qaIcon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: var(--p-bg-2, #18181c);
-  border: 1px solid var(--p-line, #2a2a35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--p-fg-0, #fff);
-  transition: background 0.2s;
-}
-
-.quickActionItem:active .qaIcon {
-  background: var(--p-bg-3, #2b2b36);
-}
-
-.qaAccent {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: #818cf8;
-}
-
-.quickActionItem span {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--p-fg-1, #e0e0e0);
+.jobGenerateBtn:hover {
+  background: #5c8aec;
 }
 
 /* RECENT / CONTENT FEED */
@@ -310,18 +336,31 @@
   padding: 0 16px 32px 16px;
 }
 
-.feedTitle {
-  font-size: 18px;
-  font-weight: 600;
+.feedHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   margin: 0 0 16px 0;
+}
+
+.feedTitle {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
   color: var(--p-fg-0, #ffffff);
+}
+
+.feedCount {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.35));
 }
 
 .recentGrid {
   display: flex;
   overflow-x: auto;
   gap: 16px;
-  padding-bottom: 12px;
   margin: 0 -16px;
   padding: 0 16px 12px 16px;
   scrollbar-width: none;
@@ -334,26 +373,68 @@
 .recentCard {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 140px;
   cursor: pointer;
 }
 
 .rcImage {
+  position: relative;
   width: 140px;
   height: 140px;
   border-radius: 12px;
-  background: var(--p-bg-2, #18181c);
-  border: 1px solid var(--p-line, #2a2a35);
+  background: var(--p-bg-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: border-color 0.15s ease;
+}
+
+.rcImage::before,
+.rcImage::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.rcImage::before {
+  top: 6px;
+  left: 6px;
+  border-top: 1.5px solid #3d6fe0;
+  border-left: 1.5px solid #3d6fe0;
+}
+
+.rcImage::after {
+  bottom: 6px;
+  right: 6px;
+  border-bottom: 1.5px solid #3d6fe0;
+  border-right: 1.5px solid #3d6fe0;
+}
+
+.recentCard:hover .rcImage {
+  border-color: rgba(61, 111, 224, 0.4);
+}
+
+.recentCard:hover .rcImage::before,
+.recentCard:hover .rcImage::after {
+  opacity: 1;
 }
 
 .rcTitle {
   font-size: 13px;
   font-weight: 500;
-  color: var(--p-fg-1, #e0e0e0);
+  color: var(--p-fg-1, rgba(246, 242, 233, 0.7));
+}
+
+.rcMeta {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.35));
 }
 
 .templateScroll {
@@ -370,28 +451,73 @@
 }
 
 .templateCard {
-  min-width: 120px;
-  height: 80px;
+  position: relative;
+  min-width: 130px;
+  height: 84px;
   border-radius: 12px;
   display: flex;
-  align-items: flex-end;
-  padding: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 12px;
   cursor: pointer;
+  background: var(--p-bg-1, #151411);
+  border: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.tcInsta { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
-.tcPres { background: linear-gradient(135deg, #0ea5e9, #3b82f6); }
-.tcPoster { background: linear-gradient(135deg, #10b981, #059669); }
-.tcLogo { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.templateCard::before,
+.templateCard::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
 
-.tcLabel {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 4px 8px;
-  border-radius: 6px;
-  backdrop-filter: blur(4px);
+.templateCard::before {
+  top: 6px;
+  left: 6px;
+  border-top: 1.5px solid #3d6fe0;
+  border-left: 1.5px solid #3d6fe0;
+}
+
+.templateCard::after {
+  bottom: 6px;
+  right: 6px;
+  border-bottom: 1.5px solid #3d6fe0;
+  border-right: 1.5px solid #3d6fe0;
+}
+
+.templateCard:hover {
+  border-color: rgba(61, 111, 224, 0.4);
+  transform: translateY(-2px);
+}
+
+.templateCard:hover::before,
+.templateCard:hover::after {
+  opacity: 1;
+}
+
+.templateTag {
+  align-self: flex-start;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3d6fe0;
+  background: rgba(61, 111, 224, 0.12);
+  border: 1px solid rgba(61, 111, 224, 0.28);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.templateLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-fg-0, #f6f2e9);
 }
 
 /* BOTTOM NAV */
@@ -401,8 +527,8 @@
   left: 0;
   width: 100%;
   height: 70px;
-  background: var(--p-bg-1, #121215);
-  border-top: 1px solid var(--p-line, #2a2a35);
+  background: var(--p-bg-1, #151411);
+  border-top: 1px solid var(--p-line, rgba(246, 242, 233, 0.1));
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -416,7 +542,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  color: var(--p-fg-2, #8b8b93);
+  color: var(--p-fg-2, rgba(246, 242, 233, 0.4));
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -439,53 +565,46 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--p-accent, #6366f1);
+  background: #3d6fe0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
-  transition: transform 0.2s;
 }
 
-.navItemCreate:active .createBtn {
-  transform: scale(0.95);
-}
-
-
-/* MEDIA QUERIES FOR DESKTOP / RESPONSIVE */
+/* MEDIA QUERIES */
 @media (min-width: 768px) {
   .appContainer {
     flex-direction: row;
   }
-  
+
   .desktopSidebar {
     display: flex;
   }
-  
+
   .bottomNav {
     display: none;
   }
-  
+
   .appMain {
     padding-bottom: 0;
   }
 
   .headerLogo {
-    display: none; /* Already present above the sidebar */
+    display: none;
   }
 
-  .heroSection, .feedSection, .quickActions {
+  .jobBarSection, .feedSection {
     padding-left: 32px;
     padding-right: 32px;
   }
-  
+
   .recentGrid, .templateScroll {
     margin: 0;
     padding: 0 0 12px 0;
     overflow-x: visible;
     flex-wrap: wrap;
   }
-  
+
   .heroHeadline {
     font-size: 32px;
   }
