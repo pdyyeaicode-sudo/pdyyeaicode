@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Search, FilePlus, Clock, Star } from "lucide-react";
 import { Icon } from "@iconify/react";
+import DOMPurify from 'dompurify';
+import { motion } from "framer-motion";
 import styles from "./PydreeStudio.module.css";
 import type { UseCreativeStudioResult } from "../editor/useCreativeStudio";
 import { createShapeCommand, type ShapeInput } from "../editor/tools/shapeTool";
@@ -35,13 +37,18 @@ import { svgToPathData } from "./utils/svgUtils";
 // Category definitions
 // ---------------------------------------------------------------------------
 
-type Category = "Shapes" | "Lines" | "Icons" | "Flowchart" | "Uploads" | "Recent";
+type Category = ShapeCategory | "Icons" | "Uploads" | "Recent";
 
 const CATEGORY_TABS: readonly { id: Category; label: string }[] = [
-  { id: "Shapes", label: "Shapes" },
+  { id: "Basic", label: "Basic" },
+  { id: "Geometry", label: "Geometry" },
   { id: "Lines", label: "Lines" },
-  { id: "Icons", label: "Icons" },
+  { id: "Arrows", label: "Arrows" },
+  { id: "Callouts", label: "Callouts" },
+  { id: "Banners & Badges", label: "Badges" },
   { id: "Flowchart", label: "Flow" },
+  { id: "Symbols", label: "Symbols" },
+  { id: "Icons", label: "Icons" },
   { id: "Uploads", label: "Uploads" },
   { id: "Recent", label: "Recent" },
 ];
@@ -323,12 +330,13 @@ const ICON_PACKS: readonly IconPack[] = [
 export interface AssetsPanelProps {
   /** The editor's single live document store. */
   studio: UseCreativeStudioResult;
-  onEnableDrawingMode?: (shapeType: string) => void;
+  onEnableDrawingMode?: (shapeType: string, shapeDef?: any) => void;
 }
 
-export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanelProps): JSX.Element {
+export default function AssetsPanel(props: AssetsPanelProps): JSX.Element {
+  const { studio, onEnableDrawingMode } = props;
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<Category>("Shapes");
+  const [category, setCategory] = useState<Category>("Basic");
   const [recentAssets, setRecentAssets] = useState<RecentAsset[]>([]);
   const [iconSearchResults, setIconSearchResults] = useState<string[]>([]);
   const [iconSearchLoading, setIconSearchLoading] = useState(false);
@@ -354,77 +362,19 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
 
   const insertShape = useCallback(
     (shape: ShapeDefinition): void => {
-      // ENABLE DRAWING MODE ONLY FOR SIMPLE DRAWABLE SHAPES
-      // Complex shapes (pentagon, heart, etc.) are created instantly at canvas center
-      const drawableShapes: Record<string, "rect" | "ellipse" | "line" | "polygon"> = {
-        // Basic drawable shapes that user can draw by clicking and dragging
-        "rect": "rect",
-        "rounded-rect": "rect",
-        "circle": "ellipse",
-        "ellipse": "ellipse",
-        "triangle": "polygon",
-        // Lines - all are drawable
-        "line-horizontal": "line",
-        "line-vertical": "line",
-        "line-diagonal": "line",
-        "arrow-right": "line",
-        "arrow-left": "line",
-        "arrow-up": "line",
-        "arrow-down": "line",
-        "double-arrow-horizontal": "line",
-        "double-arrow-vertical": "line",
-        // Flowchart shapes that are simple rectangles/diamonds
-        "flowchart-process": "rect",
-        "flowchart-decision": "polygon", // diamond shape
-        "flowchart-terminator": "rect",
-      };
-      
+      // For CreativeStudio architecture
+      if (studio.setActiveShapeDef) {
+        studio.setActiveShapeDef(shape);
+      }
+      if (studio.setActiveTool) {
+        studio.setActiveTool("shape");
+      }
+      // For PydreeStudio architecture
       if (onEnableDrawingMode) {
-        const shapeType = shape.id in drawableShapes ? drawableShapes[shape.id] : shape.id;
-        console.log(`[AssetsPanel] Enabling drawing mode for: ${shapeType}`);
-        onEnableDrawingMode(shapeType as any);
-        return;
-      }
-      
-      // For other shapes, create them instantly at canvas center
-      const doc = studio.document;
-      if (!doc) {
-        studio.newDocument?.(1080, 1080);
-        window.setTimeout(() => {
-          const latestStudio = studioRef.current;
-          if (!latestStudio.document) return;
-          const ab = getActiveArtboard(latestStudio.document);
-          const cx = (ab?.width ?? 1080) / 2;
-          const cy = (ab?.height ?? 1080) / 2;
-          const input = shape.insert(cx, cy);
-          const existingIds = new Set<string>();
-          ab?.layers.forEach((l: any) => existingIds.add(l.id));
-          const cmd = createShapeCommand(input, { existingIds, brandKit: latestStudio.brandKit });
-          if (cmd) {
-            // cmd.layer.name = shape.name;
-            latestStudio.dispatchCommand?.(cmd);
-            addRecentAsset({ type: "shape", id: shape.id, name: shape.name });
-          }
-        }, 200);
-        return;
-      }
-
-      const page = doc.pages.find((p) => p.id === doc.activePageId) ?? doc.pages[0];
-      const artboard = page?.artboards.find((a) => a.id === doc.activeArtboardId) ?? page?.artboards[0];
-      const cx = (artboard?.width ?? 1080) / 2;
-      const cy = (artboard?.height ?? 1080) / 2;
-      const input = shape.insert(cx, cy);
-
-      const existingIds = new Set<string>();
-      artboard?.layers.forEach((l) => existingIds.add(l.id));
-      const cmd = createShapeCommand(input, { existingIds, brandKit: studio.brandKit });
-      if (cmd) {
-        // cmd.layer.name = shape.name;
-        studio.dispatchCommand?.(cmd);
-        addRecentAsset({ type: "shape", id: shape.id, name: shape.name });
+        onEnableDrawingMode("custom", shape);
       }
     },
-    [studio],
+    [studio, onEnableDrawingMode],
   );
 
   // ---------------------------------------------------------------------------
@@ -567,13 +517,8 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
   // ---------------------------------------------------------------------------
 
   const filteredShapes = useMemo(() => {
-    const categoryMap: Record<string, ShapeCategory> = {
-      Shapes: "basic",
-      Lines: "line",
-      Flowchart: "flowchart",
-    };
-    const shapeCategory = categoryMap[category];
-    if (!shapeCategory) return [];
+    if (category === "Icons" || category === "Uploads" || category === "Recent") return [];
+    const shapeCategory = category as ShapeCategory;
 
     const shapes = getShapesByCategory(shapeCategory);
     const q = query.trim().toLowerCase();
@@ -614,7 +559,13 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
   // ---------------------------------------------------------------------------
 
   return (
-    <div className={styles.assetsPanel} aria-label="Assets">
+    <motion.div 
+      className={styles.assetsPanel} 
+      aria-label="Assets"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+    >
       <div className={styles.assetsTop}>
         <div className={styles.lpSearch}>
           <Search size={14} className="lucide" />
@@ -666,8 +617,8 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
       </div>
 
       <div className={styles.assetsBody}>
-        {/* ---- Shapes / Lines / Flowchart ---- */}
-        {(category === "Shapes" || category === "Lines" || category === "Flowchart") ? (
+        {/* ---- Shapes / Lines / Flowchart / etc ---- */}
+        {(category !== "Icons" && category !== "Uploads" && category !== "Recent") ? (
           filteredShapes.length === 0 ? (
             <EmptyState message="No shapes match your search." onUpload={handleUploadClick} onBrowse={() => { setQuery(""); }} />
           ) : (
@@ -714,13 +665,7 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
                     role="listitem"
                     className={styles.assetCard}
                     title={iconId}
-                    onClick={() => {
-                      if (onEnableDrawingMode) {
-                        onEnableDrawingMode(`icon:${iconId}`);
-                      } else {
-                        insertIcon(iconId, iconId.split(":")[1] ?? iconId);
-                      }
-                    }}
+                    onClick={() => insertIcon(iconId, iconId.split(":")[1] ?? iconId)}
                   >
                     <div className={styles.assetPreview}>
                       <Icon icon={iconId} width={28} height={28} />
@@ -742,15 +687,9 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
                       key={ic.id}
                       type="button"
                       role="listitem"
-                      className={styles.assetCard}
-                      title={`${ic.name} (${ic.id})`}
-                      onClick={() => {
-                        if (onEnableDrawingMode) {
-                          onEnableDrawingMode(`icon:${ic.id}`);
-                        } else {
-                          insertIcon(ic.id, ic.name);
-                        }
-                      }}
+                    className={styles.assetCard}
+                    title={`${ic.name} (${ic.id})`}
+                    onClick={() => insertIcon(ic.id, ic.name)}
                     >
                       <div className={styles.assetPreview}>
                         <Icon icon={ic.id} width={28} height={28} />
@@ -783,7 +722,7 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
             <EmptyState
               message="No recently used assets yet. Insert shapes or icons to see them here."
               onUpload={handleUploadClick}
-              onBrowse={() => setCategory("Shapes")}
+              onBrowse={() => setCategory("Basic")}
             />
           ) : (
             <div className={styles.assetGrid} role="list">
@@ -817,7 +756,7 @@ export default function AssetsPanel({ studio, onEnableDrawingMode }: AssetsPanel
           )
         ) : null}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -16,6 +16,7 @@ import styles from "./CreativeStudio.module.css";
 import type { SceneGraphNode } from "../hooks/sceneGraphStore";
 import type { BrandKit, DesignOutput, DesignRequest, TargetSize } from "../types";
 import type { SidebarSection } from "./SidebarNav";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface LeftSidebarProps {
   activeSection: SidebarSection;
@@ -55,11 +56,28 @@ export interface LeftSidebarProps {
 
 export function LeftSidebar(props: LeftSidebarProps): JSX.Element {
   return (
-    <aside className={styles.leftSidebar} aria-label="Left sidebar">
+    <motion.aside 
+      className={styles.leftSidebar} 
+      aria-label="Left sidebar"
+      initial={{ opacity: 0, x: -30 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 350 }}
+    >
       <div className={styles.sectionBody} role="tabpanel">
-        {renderSection(props)}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={props.activeSection}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            style={{ height: "100%", display: "flex", flexDirection: "column" }}
+          >
+            {renderSection(props)}
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </aside>
+    </motion.aside>
   );
 }
 
@@ -90,7 +108,7 @@ function renderSection(props: LeftSidebarProps): JSX.Element {
       return (
         <>
           <h2 className={styles.sectionTitle}>Elements</h2>
-          <IconsPanel onAddShape={props.onAddShape} />
+          <IconsPanel onAddShape={(shapeType) => props.onAddShape(toLegacyShapeType(shapeType))} />
         </>
       );
     case "upload":
@@ -148,5 +166,17 @@ function renderSection(props: LeftSidebarProps): JSX.Element {
       );
     default:
       return <p className={styles.placeholder}>Select a section.</p>;
+  }
+}
+
+function toLegacyShapeType(shapeType: string): "rectangle" | "circle" | "triangle" | "line" {
+  switch (shapeType) {
+    case "rectangle":
+    case "circle":
+    case "triangle":
+    case "line":
+      return shapeType;
+    default:
+      return "line";
   }
 }

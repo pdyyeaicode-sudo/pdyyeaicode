@@ -15,6 +15,8 @@
  */
 import {
   MousePointer2,
+  ArrowRight,
+  Bookmark,
   Move,
   Frame,
   Square,
@@ -22,6 +24,7 @@ import {
   Minus,
   Hexagon,
   Triangle,
+  Target,
   PenTool,
   Pencil,
   Type,
@@ -119,6 +122,11 @@ const ICONS = {
   banner: Flag,
   badge: Award,
   shield: Shield,
+  "arrow-right": ArrowRight,
+  "message-square": MessageSquare,
+  target: Target,
+  bookmark: Bookmark,
+  award: Award,
   // Drawing / text
   pen: PenTool,
   pencil: Pencil,
@@ -196,6 +204,7 @@ export function Icon({ name, active = false, size = 18, className, label }: Icon
     strokeWidth: ICON_STROKE_WIDTH,
     fill: "none" as const,
     color: active ? "var(--accent)" : "var(--fg-1)",
+    stroke: active ? "var(--accent)" : "var(--fg-1)",
     width: size,
     height: size,
     className,

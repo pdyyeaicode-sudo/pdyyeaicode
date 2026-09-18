@@ -1,0 +1,22 @@
+# Pdyee AI
+
+Pdyee AI (https://pdyee.ai) is a powerful, free online graphic design and UI/UX tool. It serves as an advanced alternative to popular design software like Canva and Figma. 
+
+## Core Mission
+To convert human imagination into layers by providing an intuitive, browser-based design studio that requires zero installation.
+
+## Key Features
+- **Vector-based Design Studio:** Fully featured canvas supporting precise UI/UX design, poster making, and graphic editing.
+- **Layers System:** Advanced layer management including Z-order control, grouping/ungrouping, and layer locking.
+- **AI-Powered:** Integrates artificial intelligence to accelerate the design process (e.g., AI background removal).
+- **Keyboard Shortcuts:** Supports professional, Canva-style and Figma-style keyboard shortcuts for rapid editing.
+- **Asset Library:** Extensive built-in library of shapes, icons, and illustrations.
+- **Export Options:** High-quality export to various formats including PNG, SVG, and PDF.
+
+## Technology Stack
+- Frontend built with React, Vite, and TypeScript.
+- Canvas rendering via advanced DOM and SVG manipulation.
+- Secured via Clerk (Authentication) and Supabase (Backend/Database).
+
+## Audience
+Targeted at graphic designers, UI/UX professionals, marketers, and anyone needing a fast, reliable, and free alternative to heavyweight design software.

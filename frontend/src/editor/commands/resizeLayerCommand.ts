@@ -5,19 +5,31 @@
  * System"). Callers compute and clamp the resulting geometry before building
  * the command; the command itself only substitutes captured values.
  *
- * Shapes carry a `ShapeGeometry`; images carry a position+size box; text layers
- * carry a position (their box is glyph-driven, so only x/y are restored).
+ * Three snapshot kinds, because three families of layer store their size
+ * differently:
+ *
+ *  - `geometry` — shapes, whose `ShapeGeometry` numbers are rewritten.
+ *  - `box` — images, whose x/y/width/height IS their geometry, and text layers,
+ *    for which only the position is restorable (the box is glyph-driven).
+ *  - `transform` — text, groups and path data, whose size cannot be expressed as
+ *    four numbers. `geometry/resizeGeometry.ts` explains why an approximate path
+ *    rescale is refused rather than guessed.
  *
  * One responsibility per file: this module defines a single command factory.
  */
 
-import type { Command, CreativeDocument, DocumentLayer, ShapeGeometry } from "../types/documentModel";
+import type { Command, CreativeDocument, DocumentLayer, ResizeSnapshot } from "../types/documentModel";
 import { mapLayerInDoc } from "./helpers";
 
-/** Spatial snapshot captured for a resize, discriminated by layer family. */
-export type ResizeSnapshot =
-  | { kind: "geometry"; geometry: ShapeGeometry }
-  | { kind: "box"; x: number; y: number; width: number; height: number };
+/**
+ * The snapshot union lives in `documentModel` so there is exactly ONE definition.
+ *
+ * It used to be declared here as well and the two drifted: widening one left the
+ * other narrower, and the mismatch surfaced only where a prop typed from one file
+ * was handed to a component typed from the other. Re-exported for existing import
+ * sites.
+ */
+export type { ResizeSnapshot };
 
 /**
  * Build a command that resizes `layerId` from `prev` to `next`. `prev` and
@@ -40,6 +52,12 @@ function applySnapshot(layer: DocumentLayer, snapshot: ResizeSnapshot): Document
       return { ...layer, geometry: snapshot.geometry };
     }
     return layer;
+  }
+
+  // Applies to every layer kind: a transform is how a text layer, a group or a
+  // path records a size change, and `undo` restores the previous string exactly.
+  if (snapshot.kind === "transform") {
+    return { ...layer, transform: snapshot.transform };
   }
 
   if (layer.kind === "image") {

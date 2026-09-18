@@ -769,6 +769,28 @@
   appearance: none;
 }
 
+.rotationHandle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--bg-0);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.parametricHandle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #ffdb58; /* Mustard yellow for parametric handles */
+  border: 1px solid #b8860b;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
 .layerOpacityControl {
   display: inline-flex;
   align-items: center;

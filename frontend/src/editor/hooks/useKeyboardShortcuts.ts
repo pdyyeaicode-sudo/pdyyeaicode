@@ -1,17 +1,3 @@
-/**
- * useKeyboardShortcuts — Comprehensive keyboard shortcut system
- * 
- * Manages 30+ keyboard shortcuts with context-aware enabling and priority system.
- * Shortcuts are disabled during text editing to prevent conflicts.
- */
-
-/**
- * useKeyboardShortcuts — Comprehensive keyboard shortcut system
- * 
- * Manages 30+ keyboard shortcuts with context-aware enabling and priority system.
- * Shortcuts are disabled during text editing to prevent conflicts.
- */
-
 import { useEffect } from "react";
 
 export interface KeyboardShortcutContext {
@@ -58,12 +44,16 @@ export interface KeyboardShortcutContext {
   onRedo?: () => void;
   onExitIsolation?: () => void;
   isIsolationModeActive?: boolean;
+
+  onAddText?: () => void;
+  onAddRectangle?: () => void;
+  onAddCircle?: () => void;
+  onAddLine?: () => void;
 }
 
 export function useKeyboardShortcuts(context: KeyboardShortcutContext): void {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
-      // Context detection (Task 15.5)
       let activeEl = document.activeElement;
       while (activeEl?.shadowRoot && activeEl.shadowRoot.activeElement) {
         activeEl = activeEl.shadowRoot.activeElement;
@@ -82,28 +72,20 @@ export function useKeyboardShortcuts(context: KeyboardShortcutContext): void {
       const shift = event.shiftKey;
       const alt = event.altKey;
       
-      // Priority 1: Text input - editor shortcuts must never hijack native text
-      // editing behaviour (including Ctrl/Cmd combinations such as copy and undo).
-      // Escape is intentionally handled below so an editor can still dismiss its
-      // current selection or isolation state.
       if ((isTextInput || context.isTextEditing) && event.key !== 'Escape') {
         return;
       }
 
-      // Priority 2: Modal/Menu - only Escape and navigation
       if (isModalOpen || isMenuOpen) {
         if (event.key === 'Escape') {
-          // In a real app we might close them here, but we let their own listeners handle it
           return;
         }
         if (event.key === 'Tab') {
-          return; // Let focus trap handle it
+          return;
         }
-        // Block other shortcuts
         if (!isTextInput) return;
       }
 
-      // Priority 3: Isolation mode - Escape exits first
       if (event.key === "Escape") {
         event.preventDefault();
         
@@ -116,96 +98,81 @@ export function useKeyboardShortcuts(context: KeyboardShortcutContext): void {
         return;
       }
 
-      // Meta-only shortcuts
       if (meta && !shift && !alt) {
         switch (event.key.toLowerCase()) {
           case "z":
             event.preventDefault();
             context.onUndo?.();
             return;
-          
           case "y":
             event.preventDefault();
             context.onRedo?.();
             return;
-          
           case "c":
             if (context.hasSelection) {
               event.preventDefault();
               context.onCopy?.();
             }
             return;
-          
           case "x":
             if (context.hasSelection) {
               event.preventDefault();
               context.onCut?.();
             }
             return;
-          
           case "v":
             if (context.hasClipboard) {
               event.preventDefault();
               context.onPaste?.();
             }
             return;
-          
           case "d":
             if (context.hasSelection) {
               event.preventDefault();
               context.onDuplicate?.();
             }
             return;
-          
           case "a":
             event.preventDefault();
             context.onSelectAll?.();
             return;
-          
           case "g":
             if (context.selectionCount >= 2) {
               event.preventDefault();
               context.onGroup?.();
             }
             return;
-          
           case "l":
             if (context.hasSelection) {
               event.preventDefault();
               context.onToggleLock?.();
             }
             return;
-          
           case "]":
             if (context.hasSelection) {
               event.preventDefault();
               context.onBringForward?.();
             }
             return;
-          
           case "[":
             if (context.hasSelection) {
               event.preventDefault();
               context.onSendBackward?.();
             }
             return;
-          
           case "0":
             event.preventDefault();
             context.onZoomReset?.();
             return;
-          
           case "1":
             event.preventDefault();
             context.onZoomFit?.();
             return;
-          
           case "=":
           case "+":
             event.preventDefault();
             context.onZoomIn?.();
             return;
-          
           case "-":
           case "_":
             event.preventDefault();
@@ -214,36 +181,30 @@ export function useKeyboardShortcuts(context: KeyboardShortcutContext): void {
         }
       }
 
-      // Meta+Shift shortcuts
       if (meta && shift && !alt) {
         switch (event.key.toLowerCase()) {
           case "z":
-            // Cmd/Ctrl+Shift+Z is redo on Mac
             event.preventDefault();
             context.onRedo?.();
             return;
-          
           case "g":
             if (context.hasSelection) {
               event.preventDefault();
               context.onUngroup?.();
             }
             return;
-          
           case "h":
             if (context.hasSelection) {
               event.preventDefault();
               context.onToggleVisibility?.();
             }
             return;
-          
           case "]":
             if (context.hasSelection) {
               event.preventDefault();
               context.onBringToFront?.();
             }
             return;
-          
           case "[":
             if (context.hasSelection) {
               event.preventDefault();
@@ -253,7 +214,7 @@ export function useKeyboardShortcuts(context: KeyboardShortcutContext): void {
         }
       }
 
-      // Delete/Backspace (no modifiers)
+      // No modifiers (T, R, C, L, Delete, Backspace)
       if (!meta && !shift && !alt) {
         if (event.key === "Delete" || event.key === "Backspace") {
           if (context.hasSelection) {
@@ -261,6 +222,25 @@ export function useKeyboardShortcuts(context: KeyboardShortcutContext): void {
             context.onDelete?.();
           }
           return;
+        }
+
+        switch (event.key.toLowerCase()) {
+          case "t":
+            event.preventDefault();
+            context.onAddText?.();
+            return;
+          case "r":
+            event.preventDefault();
+            context.onAddRectangle?.();
+            return;
+          case "c":
+            event.preventDefault();
+            context.onAddCircle?.();
+            return;
+          case "l":
+            event.preventDefault();
+            context.onAddLine?.();
+            return;
         }
       }
     }

@@ -38,7 +38,7 @@ import "svg2pdf.js";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Menu, MousePointer2, Hand, MessageSquare, Frame, Square, Circle as CircleIcon,
-  PenTool, Image as ImageIcon, Palette, Crop, ChevronDown, Play,
+  PenTool, Image as ImageIcon, Palette, Crop, ChevronDown,
   Plus, Minus, Trash2, Search, Layers as LayersIcon, Component, Sparkles, Type, Paperclip,
   Scissors, Copy, ClipboardPaste, CopyPlus, ArrowUp, ArrowDown, BringToFront, SendToBack,
   Group as GroupIcon, Ungroup as UngroupIcon,
@@ -69,11 +69,13 @@ import { placeImageFile } from "../editor/tools/imageTool";
 import { createTextLayer, evaluateTextCommit } from "../editor/tools/textTool";
 import { PromptForm } from "../components/PromptForm";
 import AssetsPanel from "./AssetsPanel";
+import { findShapeById } from "./assetShapes";
 import { svgToPathData } from "./utils/svgUtils";
 import { MarketPanel } from "./MarketPanel";
 import { BrandKitPanel } from "./BrandKitPanel";
 import { TextPanel } from "./TextPanel";
 import { TemplatesPanel } from "./TemplatesPanel";
+import { ExportModal } from "./ExportModal";
 import { LayersPanel } from "../editor/LayersPanel";
 import ColorPanel from "./ColorPanel";
 import { deleteLayerCommand } from "../editor/commands/deleteLayerCommand";
@@ -115,6 +117,12 @@ type PendingCanvasInsertion =
     }
   | { kind: "image"; file: File };
 
+interface PendingTextPlacement {
+  content: string;
+  fontSize: number;
+  fontWeight: "normal" | "bold";
+}
+
 const TOP_TOOLS: ToolDefinition[] = [
   { icon: MousePointer2, label: "Select", shortcut: "V" },
   { icon: Hand, label: "Hand Tool", shortcut: "H" },
@@ -154,7 +162,10 @@ function isTypingTarget(target: EventTarget | null): boolean {
     activeEl = activeEl.shadowRoot.activeElement;
   }
 
-  const element = target instanceof Element ? target : activeEl;
+  // Prefer the event target, but avoid an `instanceof Element` realm check:
+  // an embedded editor's textarea can belong to a different DOM realm.
+  const candidate = target as Element | null;
+  const element = candidate && typeof candidate.closest === "function" ? candidate : activeEl;
   if (!element) {
     return false;
   }
@@ -238,6 +249,7 @@ export default function PydreeStudio(): JSX.Element {
 
   const [tool, setTool] = useState(0);
   const [activeTool, setActiveTool] = useState<string>("select");
+  const [activeShapeDef, setActiveShapeDef] = useState<any>(null);
   const [showShapeMenu, setShowShapeMenu] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [isFullscreenFocus, setIsFullscreenFocus] = useState(false);
@@ -247,6 +259,9 @@ export default function PydreeStudio(): JSX.Element {
   const [rail, setRail] = useState<string | null>(() => (typeof window !== "undefined" && window.innerWidth < 768 ? null : "assets"));
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [editingTextLayerId, setEditingTextLayerId] = useState<string | null>(null);
+  const [pendingTextPlacement, setPendingTextPlacement] = useState<PendingTextPlacement | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
   const [pendingCanvasInsertionRevision, setPendingCanvasInsertionRevision] = useState(0);
   const [selected, setSelected] = useState("f1");
   const [insTab, setInsTab] = useState<"Design" | "Layers">("Design");
@@ -276,6 +291,9 @@ export default function PydreeStudio(): JSX.Element {
   const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>("3:4");
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
   const [projectId, setProjectId] = useState<string | null>(() => searchParams.get("project"));
   const [projectLoadState, setProjectLoadState] = useState<"ready" | "loading" | "error">(
     () => (searchParams.get("project") && projectPersistenceEnabled ? "loading" : "ready"),
@@ -329,9 +347,12 @@ export default function PydreeStudio(): JSX.Element {
       if (
         editingLayer?.kind !== "text"
         || !editingLayer.visible
-        || studio.activeLayer !== editingTextLayerId
       ) {
         setEditingTextLayerId(null);
+      } else if (studio.activeLayer !== editingTextLayerId) {
+        // Keep a valid inline editing session selected while the newly-created
+        // layer propagates through the canvas selection state.
+        studio.setActiveLayer?.(editingTextLayerId);
       }
     }
   }, [
@@ -478,15 +499,18 @@ export default function PydreeStudio(): JSX.Element {
   }, [studio.activeLayer, studio.dispatchCommand, studio.document, studio.setActiveLayer]);
 
   const deleteCurrentSelection = useCallback((): void => {
-    if (selectedLayerIds.length > 1) {
-      studio.deleteMultiple(selectedLayerIds);
+    const ids = selectedLayerIds.length > 0
+      ? selectedLayerIds
+      : studio.activeLayer
+        ? [studio.activeLayer]
+        : [];
+    if (ids.length > 0) {
+      studio.deleteMultiple(ids);
       studio.setActiveLayer?.(null);
       setSelectedLayerIds([]);
       setEditingTextLayerId(null);
-      return;
     }
-    deleteActiveLayer();
-  }, [deleteActiveLayer, selectedLayerIds, studio.deleteMultiple, studio.setActiveLayer]);
+  }, [selectedLayerIds, studio.activeLayer, studio.deleteMultiple, studio.setActiveLayer]);
 
   const duplicateCurrentSelection = useCallback((): void => {
     const layerIds = selectedLayerIds.length > 0
@@ -593,6 +617,10 @@ export default function PydreeStudio(): JSX.Element {
     },
     onGroup: groupCurrentSelection,
     onUngroup: ungroupCurrentSelection,
+    onAddText: () => addText(),
+    onAddRectangle: () => addShape("rectangle"),
+    onAddCircle: () => addShape("circle"),
+    onAddLine: () => addShape("line"),
     onBringForward: () => {
       if (studio.activeLayer) studio.bringForward(studio.activeLayer);
     },
@@ -694,6 +722,14 @@ export default function PydreeStudio(): JSX.Element {
         return;
       }
 
+      if (e.key === "Escape" && pendingTextPlacement) {
+        e.preventDefault();
+        setPendingTextPlacement(null);
+        setActiveTool("select");
+        setTool(0);
+        return;
+      }
+
       // Export (Ctrl+Shift+E)
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "e") {
         e.preventDefault();
@@ -711,27 +747,13 @@ export default function PydreeStudio(): JSX.Element {
       if (e.key === "[") { e.preventDefault(); handleReorder(-1); }
       if (e.key === "]") { e.preventDefault(); handleReorder(1); }
       
-      // Tool shortcuts (when not in input)
-      if (e.key.toLowerCase() === "v") { e.preventDefault(); handleTool(0); } // Select
-      if (e.key.toLowerCase() === "h") { e.preventDefault(); handleTool(1); } // Hand
-      if (e.key.toLowerCase() === "f") { e.preventDefault(); handleTool(2); } // Frame
-      if (e.key.toLowerCase() === "r") { e.preventDefault(); handleTool(3); } // Rectangle
-      if (e.key.toLowerCase() === "p") { e.preventDefault(); handleTool(4); } // Pen
-      if (e.key.toLowerCase() === "t") { e.preventDefault(); handleTool(5); } // Text
-      if (e.key.toLowerCase() === "i") { e.preventDefault(); handleTool(6); } // Image
-      if (e.key.toLowerCase() === "c") { e.preventDefault(); handleTool(8); } // Crop
-      if (e.key.toLowerCase() === "o") { 
-        e.preventDefault(); 
-        selectShape('ellipse'); // Circle with O key
-      }
-      if (e.key.toLowerCase() === "l") { 
-        e.preventDefault(); 
-        selectShape('line'); // Line with L key
-      }
+      // Single-letter tool shortcuts are intentionally disabled. They can
+      // steal characters while an inline text edit is mounting, including I
+      // opening the Image file picker. The visible tool buttons are unchanged.
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleTool, selectShape]);
+  }, [handleTool, pendingTextPlacement, selectShape]);
 
 
   
@@ -922,20 +944,62 @@ export default function PydreeStudio(): JSX.Element {
     queueCanvasInsertion({ kind: "shape", shape: kind });
   }
 
-  function addText(content = "Click to edit", fontSize = 24, fontWeight: "normal" | "bold" = "normal"): void {
-    queueCanvasInsertion({
-      kind: "text",
-      content,
-      fontSize,
-      fontWeight,
-    });
+  function addText(content = "Text", fontSize = 24, fontWeight: "normal" | "bold" = "normal"): void {
+    // Text is placed by the next click on the canvas. It is intentionally not
+    // represented as a frame or shape, and the existing visual tool UI is kept.
+    setPendingTextPlacement({ content, fontSize, fontWeight });
+    frameDrawingRef.current = false;
+    setActiveTool("text");
+    setTool(5);
+    if (!studio.document) {
+      studio.newDocument?.(1080, 1080);
+    }
   }
+
+  const placeTextOnCanvas = useCallback((x: number, y: number): void => {
+    const pending = pendingTextPlacement;
+    const document = studio.document;
+    if (!pending || !document || !studio.dispatchCommand) {
+      return;
+    }
+    const artboard = getActiveArtboard(document);
+    if (!artboard) {
+      studio.showToast("The text canvas is still loading. Try again in a moment.", "error");
+      return;
+    }
+
+    const safeX = Math.max(0, Math.min(x, artboard.width));
+    const safeY = Math.max(0, Math.min(y, artboard.height));
+    const result = createTextLayer({
+      content: pending.content,
+      fontSize: pending.fontSize,
+      fontWeight: pending.fontWeight,
+      x: safeX,
+      y: safeY,
+      fontFamily: studio.brandKit.fontFamily,
+      fill: studio.brandKit.primaryColor,
+      name: "Text",
+    });
+    if (result.status !== "created") {
+      studio.showToast("The text layer could not be created.", "error");
+      return;
+    }
+
+    studio.dispatchCommand(result.command);
+    selectInsertedLayer(result.layer.id, true);
+    setPendingTextPlacement(null);
+    setActiveTool("select");
+    setTool(0);
+  }, [pendingTextPlacement, selectInsertedLayer, studio.brandKit.fontFamily, studio.brandKit.primaryColor, studio.dispatchCommand, studio.document, studio.showToast]);
   const [cropTarget, setCropTarget] = useState<{ id: string, href: string } | null>(null);
 
   function handleTool(i: number): void {
     setTool(i);
     setShowShapeMenu(false);
     frameDrawingRef.current = i === 2;
+    if (i !== 5) {
+      setPendingTextPlacement(null);
+    }
 
     switch (i) {
       case 0:
@@ -960,7 +1024,6 @@ export default function PydreeStudio(): JSX.Element {
         setActiveTool("pen");
         break;
       case 5:
-        setActiveTool("select");
         addText();
         break;
       case 6:
@@ -1262,7 +1325,7 @@ export default function PydreeStudio(): JSX.Element {
             <img src="/logo.png" alt="Pydee Logo" style={{ width: 28, height: 28, objectFit: 'contain', filter: 'sepia(0.35) saturate(1.2) hue-rotate(-10deg) brightness(0.9)' }} />
           </div>
           <div className={styles.mobileTopRight}>
-            <IconButton label="Export SVG" icon={<Download size={20} />} variant="ghost" onClick={() => handleExportSVG()} />
+            <IconButton label="Share & Export" icon={<Download size={20} />} variant="ghost" onClick={() => setShowDownloadMenu(true)} />
             <IconButton label="Menu" icon={<Menu size={20} />} variant="ghost" onClick={() => setShowMobileMenu(true)} />
           </div>
         </header>
@@ -1308,7 +1371,7 @@ export default function PydreeStudio(): JSX.Element {
                 <Button label="New document" icon={<Plus size={14} />} variant="ghost" onClick={() => { setMenuOpen(false); startNewProject(); }} />
                 <Button label="Import and separate" icon={<ImageIcon size={14} />} variant="ghost" onClick={() => { setMenuOpen(false); separateInputRef.current?.click(); }} />
                 <div style={{ height: 1, background: 'var(--line)', margin: '4px 0' }} />
-                <Button label="Export SVG" icon={<Download size={14} />} variant="ghost" onClick={() => { setMenuOpen(false); handleExportSVG(); }} />
+                <Button label="Share & Export" icon={<Download size={14} />} variant="ghost" onClick={() => { setMenuOpen(false); setShowDownloadMenu(true); }} />
               </div>
             )}
           </div>
@@ -1323,14 +1386,47 @@ export default function PydreeStudio(): JSX.Element {
           {/* Divider */}
           <div style={{ width: 1, height: 24, background: 'var(--line)', marginRight: 12 }} />
           
-          <span className={styles.title}><b>{studio.document?.name ?? "Untitled"}</b></span>
+          {editingTitle ? (
+            <input
+              autoFocus
+              className={styles.titleInput}
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={() => {
+                setEditingTitle(false);
+                if (studio.document && titleDraft.trim() && titleDraft !== studio.document.name) {
+                  studio.dispatchCommand?.({
+                    type: "RENAME_DOCUMENT",
+                    label: "Rename document",
+                    apply: (doc) => ({ ...doc, name: titleDraft.trim() }),
+                    undo: (doc) => ({ ...doc, name: studio.document!.name })
+                  });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') {
+                  setEditingTitle(false);
+                  setTitleDraft(studio.document?.name ?? "Untitled");
+                }
+              }}
+            />
+          ) : (
+            <span 
+              className={styles.title} 
+              onClick={() => { setEditingTitle(true); setTitleDraft(studio.document?.name ?? "Untitled"); }}
+              title="Click to rename"
+            >
+              <b>{studio.document?.name ?? "Untitled"}</b>
+            </span>
+          )}
+
           <span className={styles.saveStatus} role="status">
             {projectLoadState === "loading" ? <Badge variant="neutral" label="Opening project..." /> : 
              projectLoadState === "error" ? <Badge variant="error" label="Project unavailable" /> :
              saveState === "saving" ? <Badge variant="neutral" label="Saving..." /> : 
              saveState === "error" ? <Badge variant="error" label="Save failed" /> : 
-             saveState === "local" ? <Badge variant="neutral" label="Local only" /> :
-             <Badge variant="success" label="Saved" />}
+             null}
           </span>
         </div>
         
@@ -1488,8 +1584,9 @@ export default function PydreeStudio(): JSX.Element {
         <aside className={`${styles.leftPanel} ${(!rail || (isMobile && activeMobilePanel !== "left")) ? styles.panelHidden : ""}`}>
           <div className={styles.sheetHandleBar} onClick={() => { setRail(null); setActiveMobilePanel(null); }} />
           {rail === "assets" ? (
-            <AssetsPanel studio={studio} onEnableDrawingMode={(shapeType) => {
+            <AssetsPanel studio={studio} onEnableDrawingMode={(shapeType, shapeDef) => {
               setActiveTool(shapeType);
+              setActiveShapeDef(shapeDef || null);
               setTool(3);
             }} />
           ) : rail === "separate" ? (
@@ -1707,6 +1804,13 @@ export default function PydreeStudio(): JSX.Element {
                   isDisabled={currentSelectionIds().length === 0}
                   onClick={duplicateCurrentSelection}
                 />
+                <ContextMenuItem
+                  icon={<Trash2 size={16} />}
+                  label="Delete"
+                  endContent={<span style={{ color: "var(--fg-2)", fontSize: "0.75rem" }}>Del / Backspace</span>}
+                  isDisabled={currentSelectionIds().length === 0}
+                  onClick={deleteCurrentSelection}
+                />
                 <div style={{ height: 1, backgroundColor: "var(--panel-border)", margin: "4px 0" }} />
                 <ContextMenuItem
                   icon={<GroupIcon size={16} />}
@@ -1808,6 +1912,12 @@ export default function PydreeStudio(): JSX.Element {
               studio.setActiveLayer?.(id);
             }}
             onSelectionChange={(selection) => {
+              // CenterStage can emit its initial empty selection before it
+              // receives a freshly inserted layer. Keep a live text edit
+              // selected until its own commit/cancel path finishes.
+              if (!selection.primaryLayerId && editingTextLayerId !== null) {
+                return;
+              }
               setSelectedLayerIds(selection.layerIds);
               if (!selection.primaryLayerId) {
                 studio.setActiveLayer?.(null);
@@ -1825,6 +1935,7 @@ export default function PydreeStudio(): JSX.Element {
               selectAllCallbackRef.current = selectAll;
             }}
             onLayerTextUpdate={commitLayerText}
+            onTextPlacement={placeTextOnCanvas}
             onDoubleClick={(layerId, textElementId) => {
               const layer = activeArtboard ? findLayer(activeArtboard.layers, layerId) : null;
               if (!layer || layer.locked || !layer.visible) {
@@ -1999,17 +2110,69 @@ export default function PydreeStudio(): JSX.Element {
                       studio.setActiveLayer?.(iconLayer.id);
                     }
                   });
+              } else if (shapeType === "custom" && activeShapeDef) {
+                const normalizedX = width >= 0 ? x : x + width;
+                const normalizedY = height >= 0 ? y : y + height;
+                const normalizedWidth = Math.abs(width);
+                const normalizedHeight = Math.abs(height);
+                const cx = normalizedX + normalizedWidth / 2;
+                const cy = normalizedY + normalizedHeight / 2;
+                
+                const input = activeShapeDef.insert(
+                  cx, 
+                  cy, 
+                  normalizedWidth >= 5 ? normalizedWidth : undefined, 
+                  normalizedHeight >= 5 ? normalizedHeight : undefined
+                );
+                
+                const layer = buildShapeLayer(input, ctx);
+                if (layer) {
+                  cmd = createLayerCommand(layer);
+                  newLayerId = layer.id;
+                }
+                
+                // Clear the active shape definition after insertion
+                setActiveShapeDef(null);
               } else {
-                cmd = createShapeCommand({
-                  kind: "path",
-                  d: generateShapePath(shapeType as any, x, y, width, height)
-                }, ctx);
+                const shapeDef = findShapeById(shapeType);
+                if (shapeDef) {
+                  const normalizedX = width >= 0 ? x : x + width;
+                  const normalizedY = height >= 0 ? y : y + height;
+                  const normalizedWidth = Math.abs(width);
+                  const normalizedHeight = Math.abs(height);
+                  const cx = normalizedX + normalizedWidth / 2;
+                  const cy = normalizedY + normalizedHeight / 2;
+                  
+                  const input = shapeDef.insert(
+                    cx, 
+                    cy, 
+                    normalizedWidth >= 5 ? normalizedWidth : undefined, 
+                    normalizedHeight >= 5 ? normalizedHeight : undefined
+                  );
+                  const layer = buildShapeLayer(input, ctx);
+                  if (layer) {
+                    cmd = createLayerCommand(layer);
+                    newLayerId = layer.id;
+                  }
+                } else {
+                  const input: any = {
+                    kind: "path",
+                    d: generateShapePath(shapeType as any, x, y, width, height)
+                  };
+                  const layer = buildShapeLayer(input, ctx);
+                  if (layer) {
+                    cmd = createLayerCommand(layer);
+                    newLayerId = layer.id;
+                  }
+                }
               }
               
               if (cmd) {
                 studio.dispatchCommand(cmd);
                 if (newLayerId) {
                   studio.setActiveLayer?.(newLayerId);
+                  selectAllCallbackRef.current?.([newLayerId]);
+                  setSelectedLayerIds([newLayerId]);
                 }
               } else if (!shapeType.startsWith("icon:")) {
                 studio.showToast("Drag to create a larger shape.", "info");
@@ -2265,8 +2428,8 @@ export default function PydreeStudio(): JSX.Element {
                 {tool === 0 && <motion.div layoutId="activeToolMobile" style={{ position: "absolute", inset: 0, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.10)" }} transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />}
                 <div style={{ position: "relative", zIndex: 1, display: "flex" }}><MousePointer2 /></div>
               </div>
-              <div className={`${styles.toolItem} ${tool === 6 ? styles.active : ""}`} onClick={() => { handleTool(6); }} title="Text">
-                {tool === 6 && <motion.div layoutId="activeToolMobile" style={{ position: "absolute", inset: 0, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.10)" }} transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />}
+              <div className={`${styles.toolItem} ${tool === 5 ? styles.active : ""}`} onClick={() => { handleTool(5); }} title="Text">
+                {tool === 5 && <motion.div layoutId="activeToolMobile" style={{ position: "absolute", inset: 0, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.10)" }} transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />}
                 <div style={{ position: "relative", zIndex: 1, display: "flex" }}><Type /></div>
               </div>
               <div className={`${styles.toolItem} ${selectedLayerIds.length === 0 ? styles.disabled : ""}`} onClick={deleteCurrentSelection} title="Cut">
@@ -2275,8 +2438,8 @@ export default function PydreeStudio(): JSX.Element {
               <div className={styles.toolItem} title="Crop">
                 <Crop />
               </div>
-              <div className={`${styles.toolItem} ${tool === 5 ? styles.active : ""}`} onClick={() => { setActiveTool("pen"); handleTool(5); }} title="Draw">
-                {tool === 5 && <motion.div layoutId="activeToolMobile" style={{ position: "absolute", inset: 0, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.10)" }} transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />}
+              <div className={`${styles.toolItem} ${tool === 4 ? styles.active : ""}`} onClick={() => { handleTool(4); }} title="Draw">
+                {tool === 4 && <motion.div layoutId="activeToolMobile" style={{ position: "absolute", inset: 0, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.10)" }} transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />}
                 <div style={{ position: "relative", zIndex: 1, display: "flex" }}><PenTool /></div>
               </div>
               <div className={`${styles.toolItem} ${tool === 3 ? styles.active : ""}`} onClick={() => { setActiveTool("rect"); handleTool(3); }} title="Shapes">
@@ -2427,6 +2590,19 @@ export default function PydreeStudio(): JSX.Element {
           }}
         />
       )}
+      
+      {showDownloadMenu && (
+        <ExportModal 
+          onClose={() => setShowDownloadMenu(false)}
+          studio={studio}
+          onExportPNG={handleExportPNG}
+          onExportJPG={handleExportJPG}
+          onExportSVG={handleExportSVG}
+          onExportPDF={handleExportPDF}
+          onExportPrintReadySVG={handleExportPrintReadySVG}
+        />
+      )}
+      
       <ToastContainer toasts={studio.toasts} onDismiss={studio.dismissToast} />
     </div>
   );

@@ -31,6 +31,13 @@ export type LayerPropName =
   | "fontStyle"
   | "textDecoration"
   | "textAlign"
+  | "lineHeight"
+  | "letterSpacing"
+  | "wordSpacing"
+  | "baselineShift"
+  | "textTransform"
+  | "direction"
+  | "writingMode"
   | "href"
   | "width"
   | "height"
@@ -39,7 +46,7 @@ export type LayerPropName =
   | "effectStack"
   | "clipPathId";
 
-export type LayerPropValue = string | number | boolean | object;
+export type LayerPropValue = string | number | boolean | object | undefined;
 
 /**
  * Build a command that sets `prop` on `layerId` to `nextValue`, restoring

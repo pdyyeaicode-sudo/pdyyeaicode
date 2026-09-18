@@ -171,6 +171,17 @@ describe("buildShapeLayer — lines (Req 5.3)", () => {
     const layer = buildShapeLayer({ kind: "line", x1: 0, y1: 5, x2: 50, y2: 5 }, emptyCtx());
     expect(layer).not.toBeNull();
   });
+
+  it("paints an open asset path with the Brand_Kit stroke", () => {
+    const layer = buildShapeLayer(
+      { kind: "path", d: "M0 0 L100 0", fill: "none" },
+      { existingIds: [], brandKit: BRAND_KIT },
+    ) as ShapeLayer;
+
+    expect(layer.fill).toBe("none");
+    expect(layer.stroke).toBe("#FF6B00");
+    expect(layer.strokeWidth).toBe(DEFAULT_LINE_STROKE_WIDTH);
+  });
 });
 
 describe("buildShapeLayer — degenerate shapes discarded (Req 5.7)", () => {

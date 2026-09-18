@@ -111,8 +111,22 @@ export function undo(state: EditorState): EditorState {
     return state;
   }
   const command = past[past.length - 1];
+  const reverted = command.undo(state.doc);
+
+  // The command factories address layers by id inside the ACTIVE artboard only.
+  // If the active artboard changed since the command was recorded, `undo` can
+  // silently do nothing — and previously it still consumed the step and moved
+  // the command onto the redo stack, so the edit became unreachable from both
+  // directions. Verify the inverse actually did something before committing.
+  if (deepEqual(reverted, state.doc)) {
+    logHistoryFallback(
+      `undo of "${command.label}" changed nothing — the command's target is not in the active artboard. The step was kept.`,
+    );
+    return state;
+  }
+
   return {
-    doc: command.undo(state.doc),
+    doc: reverted,
     stack: {
       past: past.slice(0, past.length - 1),
       future: [...future, command],
@@ -131,14 +145,32 @@ export function redo(state: EditorState): EditorState {
     return state;
   }
   const command = future[future.length - 1];
+  const reapplied = command.apply(state.doc);
+
+  // Same reasoning as `undo`: a redo that changes nothing must not consume the
+  // step, or the command is lost from both stacks.
+  if (deepEqual(reapplied, state.doc)) {
+    logHistoryFallback(
+      `redo of "${command.label}" changed nothing — the command's target is not in the active artboard. The step was kept.`,
+    );
+    return state;
+  }
+
   return {
-    doc: command.apply(state.doc),
+    doc: reapplied,
     stack: {
       past: [...past, command],
       future: future.slice(0, future.length - 1),
       cap: HISTORY_CAP,
     },
   };
+}
+
+/** AGENTS.md: no silent fallbacks — every fallback is logged with its reason. */
+function logHistoryFallback(reason: string): void {
+  if (typeof console !== "undefined" && typeof console.warn === "function") {
+    console.warn(`[history] ${reason}`);
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -41,6 +41,7 @@ import { useCreativeStudio } from "./useCreativeStudio";
 import { generateShapePath } from "./hooks/useShapeDrawing";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useLayerFocus } from "./hooks/useLayerFocus";
+import { createShapeCommand } from "./tools/shapeTool";
 import { KeyboardShortcutsPanel } from "./KeyboardShortcutsPanel";
 import { LoadingOverlay } from "./LoadingOverlay";
 import styles from "./CreativeStudio.module.css";
@@ -371,6 +372,15 @@ export function CreativeStudio(): JSX.Element {
 
     const file = e.dataTransfer.files[0];
     if (!file.type.startsWith("image/")) return;
+    // `file.type` is OS-supplied metadata, so `image/svg+xml` passes the check
+    // above. An SVG dropped here would be embedded verbatim as a `data:` href and
+    // carried into every export, where a full renderer would execute it.
+    if (file.type === "image/svg+xml" || /\.svgz?$/i.test(file.name)) {
+      console.warn(
+        "[editor] refused to embed an SVG file as a raster image; import it as a document instead",
+      );
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -378,17 +388,37 @@ export function CreativeStudio(): JSX.Element {
       if (!dataUrl) return;
 
       const img = new Image();
+      img.onerror = () => {
+        // Silent failure here used to mean a dropped file simply vanished.
+        console.warn("[editor] dropped image could not be decoded and was ignored");
+      };
       img.onload = () => {
         const defaultWidth = 300;
+        // An intrinsic size of 0 — routine for corrupt files — made `scale`
+        // Infinity and `height` NaN, which then flowed into the layer's geometry
+        // and into selection maths. Serialization coerced it to "0", so the image
+        // was invisible while the in-memory model stayed poisoned.
+        if (!Number.isFinite(img.width) || !Number.isFinite(img.height)
+            || img.width <= 0 || img.height <= 0) {
+          console.warn(
+            `[editor] dropped image reported an unusable intrinsic size (${img.width}x${img.height}) and was ignored`,
+          );
+          return;
+        }
         const scale = defaultWidth / img.width;
         const width = defaultWidth;
         const height = img.height * scale;
-        
+
         const artboardWidth = activeArtboard?.width || 1080;
         const artboardHeight = activeArtboard?.height || 1080;
-        
+
         const x = (artboardWidth - width) / 2;
         const y = (artboardHeight - height) / 2;
+
+        if (![x, y, width, height].every(Number.isFinite)) {
+          console.warn("[editor] computed a non-finite image placement and ignored the drop");
+          return;
+        }
 
         const newLayerId = `layer-image-${Date.now()}`;
         const newLayer: any = {
@@ -672,6 +702,31 @@ export function CreativeStudio(): JSX.Element {
             
             // Map all shape types to appropriate geometry
             switch (shapeType) {
+              case "custom":
+                if (studio.activeShapeDef) {
+                  const cx = left + w / 2;
+                  const cy = top + h / 2;
+                  const input = studio.activeShapeDef.insert(
+                    cx, 
+                    cy,
+                    w >= 5 ? w : undefined,
+                    h >= 5 ? h : undefined
+                  );
+                  
+                  const existingIds = new Set<string>();
+                  const ab = getActiveArtboard(studio.document);
+                  ab?.layers.forEach((l: any) => existingIds.add(l.id));
+                  const cmd = createShapeCommand(input, { existingIds, brandKit: studio.brandKit });
+                  
+                  if (cmd) {
+                    studio.dispatchCommand(cmd);
+                  }
+                  setActiveTool("select");
+                  studio.setActiveShapeDef?.(null);
+                  return;
+                }
+                break;
+                
               case "rectangle":
                 kind = "rect";
                 geometry = { type: "rect", x: left, y: top, width: w, height: h };
@@ -789,73 +844,19 @@ export function CreativeStudio(): JSX.Element {
               studio.translateLayer?.(layerId, dx, dy);
             }
           }}
-          onResize={(layerId: string, prevBox: BoxSnapshot, nextBox: BoxSnapshot) => {
+          onResizeSnapshot={(layerId: string, prev: CommandResizeSnapshot, next: CommandResizeSnapshot) => {
+            // The overlay solved this resize in the layer's OWN space and chose the
+            // snapshot kind that can express it exactly (geometry/resizeGeometry.ts),
+            // so there is nothing left to reconstruct here.
+            //
+            // What used to be here rebuilt geometry from a screen-derived box per
+            // layer kind: every polygon was assumed to be a triangle, path data was
+            // regenerated from the layer's NAME via generateShapePath, freehand
+            // strokes were refused outright, and anything else fell through to a
+            // silent no-op. All of that guessing is gone.
             if (!studio.document || !studio.dispatchCommand) return;
-            const activeArtboard = studio.document ? getActiveArtboard(studio.document) : null;
-            const layer = activeArtboard ? findLayer(activeArtboard.layers, layerId) : null;
-            if (!layer) return;
-
-            // Build prev/next snapshots depending on layer kind. Support images, text, rect, ellipse.
-            const buildBoxSnapshot = (b: BoxSnapshot): CommandResizeSnapshot => ({
-              kind: "box" as const,
-              x: b.x,
-              y: b.y,
-              width: b.width,
-              height: b.height,
-            });
-            const buildGeometrySnapshot = (b: BoxSnapshot, kind: string): CommandResizeSnapshot | null => {
-              if (kind === "rect") {
-                return { kind: "geometry" as const, geometry: { type: "rect", x: b.x, y: b.y, width: b.width, height: b.height } };
-              }
-              if (kind === "ellipse") {
-                return {
-                  kind: "geometry" as const,
-                  geometry: { type: "ellipse", cx: b.x + b.width / 2, cy: b.y + b.height / 2, rx: b.width / 2, ry: b.height / 2 },
-                };
-              }
-              return null;
-            };
-
-            let prevSnap: CommandResizeSnapshot | null = null;
-            let nextSnap: CommandResizeSnapshot | null = null;
-            if (layer.kind === "image") {
-              prevSnap = buildBoxSnapshot(prevBox);
-              nextSnap = buildBoxSnapshot(nextBox);
-            } else if (layer.kind === "text") {
-              prevSnap = { kind: "box" as const, x: layer.x, y: layer.y, width: 0, height: 0 };
-              nextSnap = { kind: "box" as const, x: nextBox.x, y: nextBox.y, width: 0, height: 0 };
-            } else if (layer.kind !== "group") {
-              // shape layers
-              if (layer.kind === "rect" && layer.geometry && layer.geometry.type === "rect") {
-                prevSnap = { kind: "geometry" as const, geometry: layer.geometry };
-                nextSnap = buildGeometrySnapshot(nextBox, "rect");
-              } else if (layer.kind === "ellipse" && layer.geometry && layer.geometry.type === "ellipse") {
-                prevSnap = { kind: "geometry" as const, geometry: layer.geometry };
-                nextSnap = buildGeometrySnapshot(nextBox, "ellipse");
-              } else if (layer.kind === "line" && layer.geometry && layer.geometry.type === "line") {
-                prevSnap = { kind: "geometry" as const, geometry: layer.geometry };
-                nextSnap = { kind: "geometry" as const, geometry: { type: "line", x1: nextBox.x, y1: nextBox.y, x2: nextBox.x + nextBox.width, y2: nextBox.y + nextBox.height } };
-              } else if (layer.kind === "polygon" && layer.geometry && layer.geometry.type === "polygon") {
-                prevSnap = { kind: "geometry" as const, geometry: layer.geometry };
-                // currently polygon is only used for triangle
-                nextSnap = { kind: "geometry" as const, geometry: { type: "polygon", points: [[nextBox.x + nextBox.width / 2, nextBox.y], [nextBox.x + nextBox.width, nextBox.y + nextBox.height], [nextBox.x, nextBox.y + nextBox.height]] } };
-              } else if (layer.kind === "path" && layer.geometry && layer.geometry.type === "path") {
-                if (layer.name !== "Freehand Stroke") {
-                  prevSnap = { kind: "geometry" as const, geometry: layer.geometry };
-                  nextSnap = { kind: "geometry" as const, geometry: { type: "path", d: generateShapePath(layer.name.toLowerCase() as any, nextBox.x, nextBox.y, nextBox.width, nextBox.height) } };
-                } else {
-                  return; // Complex stroke resizing not yet supported
-                }
-              } else {
-                // Unsupported shape: fallback to no-op
-                return;
-              }
-            }
-
-            if (!prevSnap || !nextSnap) return;
-            // Avoid recording no-op resizes
-            if (JSON.stringify(prevSnap) === JSON.stringify(nextSnap)) return;
-            studio.dispatchCommand(resizeLayerCommand(layerId, prevSnap, nextSnap));
+            if (JSON.stringify(prev) === JSON.stringify(next)) return;
+            studio.dispatchCommand(resizeLayerCommand(layerId, prev, next));
           }}
           onRotate={(layerId: string, prevBox: RotateSnapshot, nextBox: RotateSnapshot) => {
             if (studio.document && studio.dispatchCommand) {

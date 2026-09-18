@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pdyee.ai/sitemap.xml
+
+# LLM Discoverability File
+# https://llmstxt.org/
+Allow: /llms.txt

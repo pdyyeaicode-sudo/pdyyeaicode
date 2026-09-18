@@ -43,7 +43,7 @@ import type { Artboard, Command, CreativeDocument, DocumentLayer } from "./types
 import type { DesignOutput } from "../types";
 
 // Tool names for canvas tools
-type ToolName = "select" | "hand" | "pan" | "rect" | "ellipse" | "text" | "image" | "rounded-rect" | "circle" | "triangle" | "diamond" | "pentagon" | "hexagon" | "octagon" | "star" | "heart" | "cross" | "donut" | "chat-bubble" | "cloud" | "banner" | "badge" | "shield";
+type ToolName = "select" | "hand" | "pan" | "shape" | "rect" | "ellipse" | "text" | "image" | "rounded-rect" | "circle" | "triangle" | "diamond" | "pentagon" | "hexagon" | "octagon" | "star" | "heart" | "cross" | "donut" | "chat-bubble" | "cloud" | "banner" | "badge" | "shield";
 
 export interface UseCreativeStudioResult extends UseDesignStudioResult {
   /** Structured Document_Model derived from the loaded DesignOutput, or null when none is loaded. */
@@ -90,6 +90,9 @@ export interface UseCreativeStudioResult extends UseDesignStudioResult {
   toasts: Array<{ id: string; message: string; type: 'info' | 'success' | 'error' }>;
   showToast: (message: string, type?: 'info' | 'success' | 'error') => void;
   dismissToast: (id: string) => void;
+  /** Active shape definition for drawing */
+  activeShapeDef: any;
+  setActiveShapeDef: (def: any) => void;
 }
 
 const DEFAULT_DOCUMENT_NAME = "Untitled Design";
@@ -100,6 +103,7 @@ export function useCreativeStudio(): UseCreativeStudioResult {
 
   const [editorState, setEditorState] = useState<EditorState | null>(null);
   const [activeTool, setActiveTool] = useState<ToolName>("select");
+  const [activeShapeDef, setActiveShapeDef] = useState<any>(null);
   const [clipboard, setClipboard] = useState<string | null>(null);
   const [isolationMode, setIsolationMode] = useState<{ groupId: string; parentPath: string[] } | null>(null);
   
@@ -414,11 +418,13 @@ export function useCreativeStudio(): UseCreativeStudioResult {
       exitIsolation,
       activeTool,
       setActiveTool,
+      activeShapeDef,
+      setActiveShapeDef,
       toasts,
       showToast,
       dismissToast,
     }),
-    [base, liveDesignOutput, document, dispatchCommand, undo, redo, canUndo, canRedo, clipboard, loading, copy, cut, paste, duplicate, bringForward, sendBackward, bringToFront, sendToBack, applyLayerUpdate, deleteMultiple, isolationMode, enterIsolation, exitIsolation, activeTool, setActiveTool, toasts, showToast, dismissToast],
+    [base, liveDesignOutput, document, dispatchCommand, undo, redo, canUndo, canRedo, clipboard, loading, copy, cut, paste, duplicate, bringForward, sendBackward, bringToFront, sendToBack, applyLayerUpdate, deleteMultiple, isolationMode, enterIsolation, exitIsolation, activeTool, setActiveTool, activeShapeDef, setActiveShapeDef, toasts, showToast, dismissToast],
   );
 }
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { CanonicalSvgError, parseCanonicalSvg, serializeArtboard } from "./canonicalSvg";
+import {
+  CanonicalSvgError,
+  parseCanonicalSvg,
+  serializeArtboard,
+  snapToPrintGrid,
+} from "./canonicalSvg";
 import type { GroupLayer, ShapeLayer, TextLayer } from "./types/documentModel";
 
 /**
@@ -21,7 +26,7 @@ const SAMPLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height=
 </g>
 <g data-role="image-slots" data-editable="true" data-layer-id="image-slots"></g>
 <g data-role="body" data-editable="true" data-layer-id="body">
-<text data-field="body" data-element-id="body-1" x="40" y="60" fill="#111111" font-size="24">Hello &amp; welcome</text>
+<text data-field="body" data-element-id="body-1" x="40" y="60" fill="#111111" font-size="24" data-line-height="30" letter-spacing="0.5" word-spacing="1.5" baseline-shift="2" text-transform="uppercase" direction="rtl" writing-mode="vertical-rl"><tspan x="40">Hello &amp; welcome</tspan><tspan x="40" dy="30">Second line</tspan></text>
 </g>
 <g data-role="cta" data-editable="true" data-layer-id="cta">
 <rect data-field="cta-bg" data-element-id="cta-1" x="100" y="200" width="160" height="48" rx="8" fill="#FF6B00"/>
@@ -107,6 +112,16 @@ describe("parseCanonicalSvg", () => {
     expect(headline.fontStyle).toBe("italic");
     expect(headline.textDecoration).toBe("underline");
     expect(headline.blendMode).toBe("multiply");
+
+    const body = artboard.layers.find((layer) => layer.role === "body") as TextLayer;
+    expect(body.content).toBe("Hello & welcome\nSecond line");
+    expect(body.lineHeight).toBe(30);
+    expect(body.letterSpacing).toBe(0.5);
+    expect(body.wordSpacing).toBe(1.5);
+    expect(body.baselineShift).toBe(2);
+    expect(body.textTransform).toBe("uppercase");
+    expect(body.direction).toBe("rtl");
+    expect(body.writingMode).toBe("vertical-rl");
   });
 
   it("parses nondestructive image mask references", () => {
@@ -143,12 +158,40 @@ describe("parseCanonicalSvg", () => {
 });
 
 describe("serializeArtboard", () => {
-  it("snaps editable coordinates to the 0.5px grid", () => {
+  it("preserves authoring precision instead of quantising to the 0.5px grid", () => {
     const artboard = parseCanonicalSvg(SAMPLE_SVG);
     const svg = serializeArtboard(artboard);
-    // shapes rect x=10.3 → 10.5, y=20.7 → 20.5
-    expect(svg).toContain('x="10.5"');
-    expect(svg).toContain('y="20.5"');
+    // The 0.5px grid was moved to the print export path, where its stated reason
+    // — print sharpness — actually applies. Quantising here made fine dragging
+    // impossible: at zoom 8 one screen pixel is 0.125 document px, entirely
+    // below the old grid.
+    expect(svg).toContain('x="10.3"');
+    expect(svg).toContain('y="20.7"');
+  });
+
+  it("still offers the 0.5px print grid for the export path", () => {
+    expect(snapToPrintGrid(10.3)).toBe(10.5);
+    expect(snapToPrintGrid(20.7)).toBe(20.5);
+    expect(snapToPrintGrid(Number.NaN)).toBe(0);
+  });
+
+  it("keeps sub-pixel movement, down to a thousandth of a pixel", () => {
+    const artboard = parseCanonicalSvg(SAMPLE_SVG);
+    const shapes = artboard.layers.find((layer) => layer.role === "shapes");
+    expect(shapes).toBeDefined();
+
+    // A drag of 0.05px must survive the round trip. Previously it quantised to
+    // zero and the canvas showed no change at all.
+    const nudged = serializeArtboard({
+      ...artboard,
+      layers: artboard.layers.map((layer) =>
+        layer.role === "shapes" && layer.kind === "rect"
+          ? { ...layer, geometry: { ...layer.geometry, x: 10.35, y: 20.749 } }
+          : layer,
+      ),
+    });
+    expect(nudged).toContain('x="10.35"');
+    expect(nudged).toContain('y="20.749"');
   });
 
   it("always emits editable text as <text> and never path-traces it", () => {
@@ -160,6 +203,15 @@ describe("serializeArtboard", () => {
     expect(svg).not.toContain("<path");
     expect(svg).toContain('font-style="italic"');
     expect(svg).toContain('text-decoration="underline"');
+    expect(svg).toContain('data-line-height="30"');
+    expect(svg).toContain('letter-spacing="0.5"');
+    expect(svg).toContain('word-spacing="1.5"');
+    expect(svg).toContain('baseline-shift="2"');
+    expect(svg).toContain('text-transform="uppercase"');
+    expect(svg).toContain('direction="rtl"');
+    expect(svg).toContain('writing-mode="vertical-rl"');
+    expect(svg).toContain('<tspan x="40">Hello &amp; welcome</tspan>');
+    expect(svg).toContain('<tspan x="40" dy="30">Second line</tspan>');
     expect(svg).toContain("mix-blend-mode: multiply");
   });
 

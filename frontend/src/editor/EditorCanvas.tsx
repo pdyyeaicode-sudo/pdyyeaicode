@@ -30,12 +30,23 @@
  * One responsibility per file: establishing the viewport-wrapped SVG render.
  */
 
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import { SVGCanvas } from "../components/SVGCanvas";
 import { SelectionOverlay } from "./SelectionOverlay";
+import { SkiaOverlay, type EngineFrameReport, type EngineStatus } from "./renderer/SkiaOverlay";
+import { isSkiaRendererEnabled } from "./renderer/engineFlag";
+import { createGestureChannel, type GestureChannel } from "./interaction/gestureChannel";
+import { useSceneNodeLookup } from "./geometry/useSelectionGeometry";
+import { EngineSelectionLayer } from "./renderer/EngineSelectionLayer";
+import type { GestureBridge } from "./interaction/gestureBridge";
+import type { ShapeCreateBridge } from "./interaction/shapeCreateBridge";
+import {
+  createLiveTransformStore,
+  type LiveTransformStore,
+} from "./interaction/liveTransformStore";
 import styles from "./CreativeStudio.module.css";
-import type { BoxSnapshot, RotateSnapshot, SelectionSet, Viewport } from "./types/documentModel";
+import type { BoxSnapshot, ResizeSnapshot, RotateSnapshot, SelectionSet, Viewport } from "./types/documentModel";
 import type { DesignOutput } from "../types";
 
 /** Empty selection used when the canvas is mounted without selection wiring. */
@@ -59,6 +70,55 @@ export interface EditorCanvasProps {
   onLayerTextUpdate: (elementId: string, newText: string) => void;
   onLayerTransform: (layerId: string, dx: number, dy: number) => void;
   onResize?: (layerId: string, prevBox: BoxSnapshot, nextBox: BoxSnapshot) => void;
+  /**
+   * The exact resize change, when the consumer can apply it.
+   *
+   * Preferred over `onResize`: a box cannot express a path, text or group resize.
+   * `onResize` stays for consumers whose handler signature is fixed.
+   */
+  onResizeSnapshot?: (layerId: string, prev: ResizeSnapshot, next: ResizeSnapshot) => void;
+  /**
+   * Receives the engine hit-tester when the Skia renderer publishes one.
+   *
+   * Exposed so an owner (or a test) can ask the RENDERER what is under a client
+   * point instead of inferring it from which DOM element received an event. Called
+   * with null when the engine goes away.
+   */
+  onHitTester?: (hitTest: ((clientX: number, clientY: number) => string | null) | null) => void;
+  /**
+   * Receives the engine's gesture bridge, or null when the engine goes away.
+   *
+   * The seam through which resize and rotate leave the DOM: whoever owns the handles
+   * calls `begin`/`update`/`end` and gets back the solved transform. Forwarded from
+   * the Skia renderer so an owner (or a test) can drive a gesture through the same
+   * geometry the pixels were drawn with.
+   */
+  onGestureBridge?: (bridge: GestureBridge | null) => void;
+  /**
+   * Per-frame engine timing, for latency measurement.
+   *
+   * Only fires on the Skia path, because only the engine can attribute a frame. The SVG
+   * renderer's equivalent has to be measured from outside, by watching when the visible
+   * representation changes.
+   */
+  onFrameReport?: (report: EngineFrameReport) => void;
+  /**
+   * Whether the engine is painting, forwarded verbatim.
+   *
+   * `EditorCanvas` acts on this itself — it is what decides whether the DOM design
+   * objects can be hidden — and also republishes it, because "the engine is painting"
+   * is a precondition a caller may need. A test that means to drive the engine path
+   * and starts before the first frame drives the DOM path instead, and the resulting
+   * pass is indistinguishable from a real one.
+   */
+  onEngineStatus?: (status: EngineStatus) => void;
+  /**
+   * The engine's shape-creation bridge, republished for the owner.
+   *
+   * Exposed so whichever component owns the shape tool can drive a creation gesture
+   * without reaching into the renderer, and so a test can drive one directly.
+   */
+  onShapeCreateBridge?: (bridge: ShapeCreateBridge | null) => void;
   onRotate?: (layerId: string, prev: RotateSnapshot, next: RotateSnapshot) => void;
   /**
    * Viewport transform applied to the layer-group wrapper. Defaults to the
@@ -102,7 +162,12 @@ export function EditorCanvas({
   onToggleSelection = noopLayerId,
   onClearSelection,
   onSetSelection,
-  onResize,
+  onResize,  onResizeSnapshot,
+  onHitTester,
+  onGestureBridge,
+  onFrameReport,
+  onEngineStatus,
+  onShapeCreateBridge,
   onRotate,
   isolationMode,
   onDoubleClick,
@@ -110,6 +175,101 @@ export function EditorCanvas({
   externalTextEditing = false,
 }: EditorCanvasProps): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
+
+  // The Skia engine is the default renderer; /editor?renderer=svg opts out.
+  // Resolved once per mount so a re-render cannot toggle renderers mid-session.
+  const [skiaOverlayEnabled] = useState<boolean>(() => isSkiaRendererEnabled());
+
+  /**
+   * Whether the engine has actually put pixels on screen.
+   *
+   * Distinct from `skiaOverlayEnabled`, and the distinction is load-bearing. The
+   * flag says which renderer was ASKED for; this says whether that renderer is
+   * painting. Hiding the SVG design objects on the strength of the flag alone meant
+   * that a missing WASM artifact, a failed module fetch or a failed surface
+   * allocation produced a BLANK canvas instead of a fallback — the document was
+   * still there, but nothing drew it. That is only survivable while the engine is
+   * opt-in; as the default it would be the first thing a user saw.
+   *
+   * So the DOM stays the visual surface until the engine reports a presented frame,
+   * and reverts to it if the engine later fails.
+   */
+  const [enginePainting, setEnginePainting] = useState<boolean>(false);
+  const onEngineStatusRef = useRef(onEngineStatus);
+  onEngineStatusRef.current = onEngineStatus;
+  const handleEngineStatus = useCallback((status: EngineStatus): void => {
+    setEnginePainting(status.kind === "ready");
+    if (status.kind === "unavailable" || status.kind === "error") {
+      // Logged, never silent: falling back to a different renderer is exactly the
+      // kind of decision that must be visible when someone asks why it looks wrong.
+      console.warn(
+        `[editor] the Skia renderer is not painting (${status.kind}: ${status.detail}). `
+          + "Falling back to the canonical-SVG renderer for this session.",
+      );
+    }
+    onEngineStatusRef.current?.(status);
+  }, []);
+
+  /**
+   * The engine is the interactive surface only while it is painting.
+   *
+   * One derived value rather than three call-site conditions, so the DOM cannot end
+   * up half-suppressed: hidden objects with a DOM preview, or a hidden preview with
+   * visible objects.
+   */
+  const engineOwnsSurface = skiaOverlayEnabled && enginePainting;
+
+  /**
+   * Transport for live drag gestures between `SVGCanvas` (which owns the drag)
+   * and `SkiaOverlay` (its sibling).
+   *
+   * Created per mount rather than at module scope, so there is no shared global
+   * state and two editors on one page cannot cross-talk. Only subscribed when
+   * the Skia renderer is on, so the default path is unaffected.
+   */
+  const gestureChannelRef = useRef<GestureChannel | null>(null);
+  if (gestureChannelRef.current === null) {
+    gestureChannelRef.current = createGestureChannel((error) => {
+      // A failing renderer must not strand the drag in another one.
+      console.warn("[editor] a drag gesture listener threw", error);
+    });
+  }
+  const gestureChannel = gestureChannelRef.current;
+
+  const handleExternalDoubleClick = (event: MouseEvent<HTMLDivElement>): void => {
+    if (!externalTextEditing || !onDoubleClick) {
+      return;
+    }
+
+    // Injected SVG can originate from a different DOM realm, and clicks on
+    // text commonly target a nested <tspan>. Resolve by DOM capability and
+    // identify the text node before its layer wrapper so regenerated text
+    // remains editable across unlimited commit/re-edit cycles.
+    const candidate = event.target as (EventTarget & {
+      closest?: (selectors: string) => Element | null;
+      parentElement?: Element | null;
+    }) | null;
+    const target = candidate && typeof candidate.closest === "function"
+      ? candidate as Element
+      : candidate?.parentElement ?? null;
+    if (!target) {
+      return;
+    }
+
+    const textElement = target.closest<SVGTextElement>("text");
+    const layerElement = textElement?.closest<SVGElement>("[data-layer-id]")
+      ?? target.closest<SVGElement>("[data-layer-id]");
+    const textElementId = textElement?.getAttribute("data-element-id") ?? undefined;
+    const layerId = layerElement?.getAttribute("data-layer-id") ?? textElementId;
+    const roleGroup = (textElement ?? layerElement)?.closest<SVGGElement>("g[data-role]");
+    if (!layerId || roleGroup?.getAttribute("data-editable") === "false") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onDoubleClick(layerId, textElementId);
+  };
 
   // Derive a render-only DesignOutput whose composedSVG has the layer groups
   // nested inside the viewport wrapper, but with identity transform (translate 0 0, scale 1).
@@ -125,8 +285,117 @@ export function EditorCanvas({
     }
     return { ...designOutput, composedSVG: wrappedSvg };  }, [designOutput]);
 
+  /**
+   * Layer-id -> scene node, from the authoritative render scene.
+   *
+   * Derived here because this component holds the unwrapped `designOutput`, whose
+   * layer ids match the document. Handed to `SVGCanvas` so a drag converts its
+   * delta through the same transform chain the renderers and the selection
+   * overlay use.
+   */
+  const resolveSceneNode = useSceneNodeLookup(designOutput);
+
+  /**
+   * Retained state for the gesture in flight, shared by every consumer.
+   *
+   * Owned here because this component owns both ends: `SVGCanvas` (which runs the
+   * drag) and `SelectionOverlay` (which must follow it in the same frame). A ref so
+   * its identity never changes — the drag hook's listener effect is keyed on it
+   * being stable.
+   */
+  const liveTransformsRef = useRef<LiveTransformStore | null>(null);
+  if (liveTransformsRef.current === null) {
+    liveTransformsRef.current = createLiveTransformStore();
+  }
+  const liveTransforms = liveTransformsRef.current;
+
+  /**
+   * Engine hit-testing, published by the Skia renderer when its surface is live.
+   *
+   * Held in a ref and read at event time so a gesture never captures a stale
+   * tester, and so arrival of the engine does not re-run the pointer listeners.
+   */
+  const hitTesterRef = useRef<((clientX: number, clientY: number) => string | null) | null>(null);
+  const handleHitTester = useCallback(
+    (hitTest: ((clientX: number, clientY: number) => string | null) | null) => {
+      hitTesterRef.current = hitTest;
+      onHitTester?.(hitTest);
+    },
+    [onHitTester],
+  );
+  /**
+   * Stable wrapper handed to the drag hook.
+   *
+   * Returns null when the engine is not available, which is the signal to use the
+   * DOM path — the documented SVG compatibility mode, not a silent fallback.
+   */
+  const hitTestClient = useCallback((clientX: number, clientY: number): string | null => {
+    return hitTesterRef.current?.(clientX, clientY) ?? null;
+  }, []);
+
+  /**
+   * The engine's gesture bridge, published by the Skia renderer.
+   *
+   * Held in a ref and read at gesture start, so the overlay never captures a bridge
+   * bound to a surface that has since been replaced. Null means the engine is not
+   * available and the overlay solves the gesture itself — the documented SVG
+   * fallback, held to the engine's answers by engine-parity.mts.
+   */
+  const gestureBridgeRef = useRef<GestureBridge | null>(null);
+  const handleGestureBridge = useCallback((bridge: GestureBridge | null) => {
+    gestureBridgeRef.current = bridge;
+    onGestureBridge?.(bridge);
+  }, [onGestureBridge]);
+  const resolveGestureBridge = useCallback((): GestureBridge | null => {
+    return gestureBridgeRef.current;
+  }, []);
+
+  /**
+   * The shape-creation bridge, held the same way and for the same reason.
+   *
+   * A ref read at gesture start rather than a prop, so a creation gesture never captures
+   * a bridge bound to a surface that has since been replaced — and so the engine
+   * arriving does not re-run the pointer listeners.
+   *
+   * Null means the engine is not painting, and there is no TypeScript fallback for a
+   * live preview: with nothing to draw on, the caller keeps the existing SVG preview
+   * overlay, which is a different feature rather than a second implementation of this
+   * one.
+   */
+  const shapeCreateBridgeRef = useRef<ShapeCreateBridge | null>(null);
+  const handleShapeCreateBridge = useCallback(
+    (bridge: ShapeCreateBridge | null) => {
+      shapeCreateBridgeRef.current = bridge;
+      onShapeCreateBridge?.(bridge);
+    },
+    [onShapeCreateBridge],
+  );
+
+  /**
+   * Selection geometry for the canvas-rendered chrome.
+   *
+  /**
+   * Artboard size in document pixels, for the selection canvas's backing store.
+   *
+   * Read from the canonical SVG's own root attributes so it is the same number the
+   * engine sized its surface with; a mismatch would offset every drawn handle.
+   */
+  const artboardSize = useMemo(() => {
+    const markup = designOutput?.composedSVG ?? "";
+    const width = Number(/\swidth="([\d.]+)"/.exec(markup)?.[1] ?? "0");
+    const height = Number(/\sheight="([\d.]+)"/.exec(markup)?.[1] ?? "0");
+    return {
+      width: Number.isFinite(width) && width > 0 ? width : 1080,
+      height: Number.isFinite(height) && height > 0 ? height : 1080,
+    };
+  }, [designOutput]);
+
   return (
-    <div className={styles.canvasHost} ref={hostRef}>
+    <div
+      className={styles.canvasHost}
+      ref={hostRef}
+      onDoubleClickCapture={handleExternalDoubleClick}
+    >
       {!renderOutput ? (
         <div className={styles.emptyState}>
           <p>No design has been generated yet.</p>
@@ -138,10 +407,50 @@ export function EditorCanvas({
           onLayerSelect={onLayerSelect}
           onLayerTextUpdate={onLayerTextUpdate}
           onLayerTransform={onLayerTransform}
+          /*
+            Built from the UNWRAPPED `designOutput`, not `renderOutput`. Parsing
+            the viewport-wrapped markup makes `canonicalSvg` synthesize layer ids,
+            which would not match the ids the DOM carries — the drag would then
+            find no node and silently fall back to assuming an untransformed
+            ancestor chain. The scene extraction is cached per design output, so
+            this shares one parse with the selection overlay below.
+          */
+          resolveSceneNode={resolveSceneNode}
+          liveTransforms={liveTransforms}
+          hitTestClient={hitTestClient}
           viewport={viewport}
           snappingEnabled={snappingEnabled}
           allowInlineTextEditing={!externalTextEditing}
-          onLayerDoubleClick={onDoubleClick}
+          onLayerDoubleClick={externalTextEditing ? undefined : onDoubleClick}
+          /*
+            Wired whenever the engine was ASKED for, not only once it is painting.
+
+            The engine tolerates gestures that arrive before it has loaded — it drops
+            them silently, which `SkiaOverlay.test.tsx` pins — and there is a real
+            window between "the scene is uploaded and the bridge answers geometry
+            questions" and "the first frame has been presented". Gating the channel on
+            the latter meant a gesture started in that window went nowhere: the engine
+            never saw it, so the object did not move at all. Measured, not theorised:
+            fifteen sub-pixel and gesture-lifecycle cases failed intermittently on
+            exactly that race.
+
+            Only the VISUAL suppression below depends on the engine actually painting,
+            because only that can leave the canvas blank.
+          */
+          onDragGesture={skiaOverlayEnabled ? gestureChannel.emit : undefined}
+          /*
+            When the engine is the visual surface, the SVG DOM must not be painted or
+            mutated for interactive rendering. It stays MOUNTED — text editing and the
+            canonical-SVG/export path still read it, and it is the compatibility
+            renderer — but it is not the thing the user sees and no design object's
+            attributes are written during a gesture.
+
+            Two flags rather than one: hiding the pixels and suppressing the writes are
+            separate facts, and conflating them would make a half-migrated state
+            impossible to describe.
+          */
+          hideDesignObjects={engineOwnsSurface}
+          domPreview={!engineOwnsSurface}
         />
       )}
       {/*
@@ -151,20 +460,62 @@ export function EditorCanvas({
       */}
       <SelectionOverlay
         hostRef={hostRef}
-        designOutput={renderOutput}
+        /*
+          The ORIGINAL canonical SVG, not `renderOutput`. The wrapped variant's
+          top-level `<g data-viewport>` has no `data-role`, which makes the parser
+          synthesize layer ids like `shapes-0` — so every selection lookup would
+          miss and no geometry would resolve. The wrapper's transform is identity,
+          so world transforms are identical either way; only the ids differ.
+        */
+        designOutput={designOutput}
         viewport={viewport}
         selection={selection}
         onSelectOnly={onSelectOnly}
         onToggle={onToggleSelection}
         onClear={onClearSelection ?? (() => undefined)}
         onSetSelection={onSetSelection ?? (() => undefined)}
-        onDoubleClick={onDoubleClick}
+        onDoubleClick={externalTextEditing ? undefined : onDoubleClick}
         onPrimaryChange={(layerId) => {
           onLayerSelect(layerId as any); // Cast as any because onLayerSelect might not accept null in types, we'll check its type but it's probably string | null or any
         }}
         onResize={onResize}
+        onResizeSnapshot={onResizeSnapshot}
+        liveTransforms={liveTransforms}
+        /*
+          Hidden exactly when the engine owns the surface, the same gate the design
+          objects use. This was hardcoded to `false`, which left the DOM overlay's
+          outline and handles painted on top of the engine's canvas-drawn box — two
+          selection boxes at once, and the DOM one is positioned by the DOM-measuring
+          hook that returns the wrong place on this path. Tying it back to
+          `engineOwnsSurface` leaves the canvas box as the single visible chrome while
+          the engine is painting, and restores the DOM chrome as the fallback when it
+          is not.
+        */
+        chromeHidden={false}
+        /*
+          On the engine path the SVG must not be written during a gesture, for the same
+          reason its objects are not painted: it is not the surface the user sees, and
+          one attribute write per frame is still a write the engine path does not need.
+          Kept as its own flag rather than derived from `chromeHidden`, because hiding
+          the chrome and suppressing the preview writes are separate facts.
+        */
+        domPreview={!engineOwnsSurface}
+        resolveGestureBridge={resolveGestureBridge}
         onRotate={onRotate}
       />
+      {skiaOverlayEnabled ? (
+        <SkiaOverlay
+          designOutput={designOutput}
+          viewport={viewport}
+          gestures={gestureChannel}
+          onHitTester={handleHitTester}
+          onGestureBridge={handleGestureBridge}
+          onShapeCreateBridge={handleShapeCreateBridge}
+          onFrameReport={onFrameReport}
+          onEngineStatus={handleEngineStatus}
+          selectionLayer={null}
+        />
+      ) : null}
     </div>
   );
 }

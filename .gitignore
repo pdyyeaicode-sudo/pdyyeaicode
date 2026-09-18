@@ -8,3 +8,26 @@ venv/
 dist/
 .tmp/
 .vscode/
+
+
+# Pydee C++/Skia engine build outputs.
+# engine/skia.revision IS committed — it is the reproducible build pin.
+engine/artifacts/
+engine/build/
+engine/out/
+
+
+# Engine module published for Vite to serve. Rebuilt by
+# engine/scripts/build-engine-wasm.sh; the editor falls back to the SVG
+# renderer when it is absent.
+frontend/public/engine/
+
+
+# Browser-test build output and Playwright artifacts. The harness is built from
+# source on demand (frontend/browser-tests/vite.harness.config.ts), so none of
+# this belongs in the repository.
+frontend/dist-harness/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/

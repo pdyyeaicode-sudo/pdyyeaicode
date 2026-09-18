@@ -30,6 +30,8 @@ import type { Command, ShapeLayer } from "../types/documentModel";
 export interface PenAnchor {
   readonly x: number;
   readonly y: number;
+  readonly inHandle?: { x: number; y: number };
+  readonly outHandle?: { x: number; y: number };
 }
 
 /**
@@ -115,33 +117,100 @@ export function isOnFirstAnchor(
 
 /**
  * Build an SVG path `d` string from anchors. The first anchor becomes a
- * `moveto`, the rest `lineto`; when `closed` is true a `Z` closepath is
- * appended. Coordinates are snapped to the 0.5px Canonical_SVG grid for print
+ * `moveto`, the rest `lineto` or `curveto` depending on handles; when `closed`
+ * is true a `Z` closepath is appended and the curve connects back to the start.
+ * Coordinates are snapped to the 0.5px Canonical_SVG grid for print
  * sharpness (AGENTS.md SVG rules). Returns `""` for zero anchors.
  */
 export function buildPathData(
   anchors: readonly PenAnchor[],
-  options: { readonly closed?: boolean } = {},
+  options: { readonly closed?: boolean; readonly liveCursor?: PenAnchor } = {},
 ): string {
   if (anchors.length === 0) {
     return "";
   }
-  const segments = anchors.map((anchor, index) => {
-    const command = index === 0 ? "M" : "L";
-    return `${command} ${formatCoordinate(anchor.x)} ${formatCoordinate(anchor.y)}`;
-  });
-  if (options.closed) {
-    segments.push("Z");
+
+  let path = `M ${formatCoordinate(anchors[0].x)} ${formatCoordinate(anchors[0].y)}`;
+
+  for (let i = 1; i < anchors.length; i++) {
+    const prev = anchors[i - 1];
+    const curr = anchors[i];
+    if (prev.outHandle || curr.inHandle) {
+      const outHandle = prev.outHandle || prev;
+      const inHandle = curr.inHandle || curr;
+      path += ` C ${formatCoordinate(outHandle.x)} ${formatCoordinate(outHandle.y)}, ${formatCoordinate(inHandle.x)} ${formatCoordinate(inHandle.y)}, ${formatCoordinate(curr.x)} ${formatCoordinate(curr.y)}`;
+    } else {
+      path += ` L ${formatCoordinate(curr.x)} ${formatCoordinate(curr.y)}`;
+    }
   }
-  return segments.join(" ");
+
+  if (options.liveCursor) {
+    const prev = anchors[anchors.length - 1];
+    const curr = options.liveCursor;
+    if (prev.outHandle || curr.inHandle) {
+      const outHandle = prev.outHandle || prev;
+      const inHandle = curr.inHandle || curr;
+      path += ` C ${formatCoordinate(outHandle.x)} ${formatCoordinate(outHandle.y)}, ${formatCoordinate(inHandle.x)} ${formatCoordinate(inHandle.y)}, ${formatCoordinate(curr.x)} ${formatCoordinate(curr.y)}`;
+    } else {
+      path += ` L ${formatCoordinate(curr.x)} ${formatCoordinate(curr.y)}`;
+    }
+  }
+
+  if (options.closed && anchors.length >= 2) {
+    const prev = anchors[anchors.length - 1];
+    const curr = anchors[0];
+    if (prev.outHandle || curr.inHandle) {
+      const outHandle = prev.outHandle || prev;
+      const inHandle = curr.inHandle || curr;
+      path += ` C ${formatCoordinate(outHandle.x)} ${formatCoordinate(outHandle.y)}, ${formatCoordinate(inHandle.x)} ${formatCoordinate(inHandle.y)}, ${formatCoordinate(curr.x)} ${formatCoordinate(curr.y)} Z`;
+    } else {
+      path += ` Z`;
+    }
+  } else if (options.closed) {
+    path += " Z";
+  }
+
+  return path;
 }
 
 /**
  * The `d` string for the in-progress (open) path, for live preview rendering
  * by the wiring (Req 8.1). Returns `""` when there are no anchors yet.
  */
-export function previewPathData(session: PenSession): string {
-  return buildPathData(session.anchors, { closed: false });
+export function previewPathData(session: PenSession, liveCursor?: PenAnchor): string {
+  return buildPathData(session.anchors, { closed: false, liveCursor });
+}
+
+/**
+ * Update the outHandle (and symmetrically mirror the inHandle) of the last anchor
+ * in the session. Returns a new session object.
+ */
+export function updateLastAnchorHandles(
+  session: PenSession,
+  controlPoint: { x: number; y: number }
+): PenSession {
+  if (session.anchors.length === 0) return session;
+  const lastIndex = session.anchors.length - 1;
+  const lastAnchor = session.anchors[lastIndex];
+  
+  // Mirror the control point to create a symmetric handle
+  const dx = controlPoint.x - lastAnchor.x;
+  const dy = controlPoint.y - lastAnchor.y;
+  
+  const inHandle = {
+    x: lastAnchor.x - dx,
+    y: lastAnchor.y - dy,
+  };
+  
+  const newAnchor: PenAnchor = {
+    ...lastAnchor,
+    inHandle,
+    outHandle: controlPoint,
+  };
+  
+  const newAnchors = [...session.anchors];
+  newAnchors[lastIndex] = newAnchor;
+  return { anchors: newAnchors };
 }
 
 /**

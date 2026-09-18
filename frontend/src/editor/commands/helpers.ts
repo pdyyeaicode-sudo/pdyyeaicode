@@ -23,6 +23,8 @@ import type {
   DocumentLayer,
   ShapeGeometry,
 } from "../types/documentModel";
+import { worldDeltaInSpaceOf } from "../geometry/transformDelta";
+import { parseSvgTransform } from "../renderer/matrix2d";
 
 // ---------------------------------------------------------------------------
 // Active-artboard access (immutable)
@@ -288,11 +290,33 @@ function clampIndex(index: number, length: number): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Return a copy of `layer` translated by `(dx, dy)`. Groups are translated by
- * recursively offsetting every child. Offsetting by `(dx, dy)` then `(-dx,
- * -dy)` reproduces the original layer exactly for coordinates that are integer
- * multiples of 0.5 (the Canonical_SVG grid), which keeps translate commands
- * exactly invertible.
+ * Return a copy of `layer` translated by `(dx, dy)`, expressed in the layer's OWN
+ * space.
+ *
+ * "Its own space" matters for groups. A group's children each carry their own
+ * transform, and a child's geometry coordinates live INSIDE that transform, so
+ * offsetting every descendant's geometry by the same numbers moves a rotated or
+ * scaled child in the wrong direction and by the wrong amount. Previously that is
+ * exactly what happened: dragging a group whose children were individually rotated
+ * pulled them apart.
+ *
+ * The delta is therefore mapped into each child's space on the way down:
+ *
+ * ```
+ * want:  T_child * g' = T_child * g + delta        (move by delta in the group's space)
+ * so:    g' = g + linear(T_child)^-1 * delta
+ * ```
+ *
+ * which is the same `M^-1 * t` conversion the drag path uses, applied recursively.
+ *
+ * When a descendant's transform cannot be inverted — singular, or a transform list
+ * this codebase cannot parse — the layer is returned UNCHANGED and the reason is
+ * logged. A group that moved some of its children and not others would be worse
+ * than one that did not move, and the dispatcher drops a no-op command.
+ *
+ * Offsetting by `(dx, dy)` then `(-dx, -dy)` reproduces the original layer exactly
+ * for coordinates that are integer multiples of 0.5 (the Canonical_SVG grid), which
+ * keeps translate commands exactly invertible.
  */
 export function offsetLayer(layer: DocumentLayer, dx: number, dy: number): DocumentLayer {
   switch (layer.kind) {
@@ -300,11 +324,50 @@ export function offsetLayer(layer: DocumentLayer, dx: number, dy: number): Docum
       return { ...layer, x: layer.x + dx, y: layer.y + dy };
     case "image":
       return { ...layer, x: layer.x + dx, y: layer.y + dy };
-    case "group":
-      return { ...layer, children: layer.children.map((child) => offsetLayer(child, dx, dy)) };
+    case "group": {
+      const children: DocumentLayer[] = [];
+      for (const child of layer.children) {
+        const childDelta = deltaInLayerSpace(child, dx, dy);
+        if (childDelta === null) {
+          console.warn(
+            `[commands] layer "${child.id}" has a transform that cannot be inverted, so the `
+              + `translation of group "${layer.id}" was not applied to any child.`,
+          );
+          return layer;
+        }
+        children.push(offsetLayer(child, childDelta.dx, childDelta.dy));
+      }
+      return { ...layer, children };
+    }
     default:
       return { ...layer, geometry: offsetGeometry(layer.geometry, dx, dy) };
   }
+}
+
+/**
+ * A delta from a parent's space into `layer`'s own space.
+ *
+ * Only the LINEAR part of the transform applies: a displacement has no position, so
+ * adding the transform's translation would move the layer by its own offset as well.
+ * Returns null when the transform is unusable, so the caller can refuse rather than
+ * apply an unconverted delta.
+ */
+function deltaInLayerSpace(
+  layer: DocumentLayer,
+  dx: number,
+  dy: number,
+): { dx: number; dy: number } | null {
+  const transform = (layer as { transform?: string }).transform;
+  if (transform === undefined || transform.trim() === "") {
+    return { dx, dy };
+  }
+  const parsed = parseSvgTransform(transform);
+  if (parsed.unsupported.length > 0) {
+    // An unparsed component would silently drop out of the conversion, so the
+    // resulting delta would be wrong in a way nothing downstream could detect.
+    return null;
+  }
+  return worldDeltaInSpaceOf(parsed.matrix, { dx, dy });
 }
 
 function offsetGeometry(geometry: ShapeGeometry, dx: number, dy: number): ShapeGeometry {
@@ -323,6 +386,8 @@ function offsetGeometry(geometry: ShapeGeometry, dx: number, dy: number): ShapeG
       };
     case "polygon":
       return { ...geometry, points: geometry.points.map(([px, py]) => [px + dx, py + dy] as [number, number]) };
+    case "parametric":
+      return { ...geometry, x: geometry.x + dx, y: geometry.y + dy };
     case "path":
     default:
       return { ...geometry, d: translatePathData(geometry.d, dx, dy) };

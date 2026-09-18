@@ -87,13 +87,96 @@ export function validateOpacityPercent(raw: string): Validation<number> {
   return validateNumberInRange(raw, OPACITY_MIN, OPACITY_MAX, { field: "Opacity", integer: true });
 }
 
+/**
+ * Every blend mode the renderers actually support.
+ *
+ * The order and membership mirror `RenderBlendMode` in
+ * `renderer/renderScene.ts` and `BlendMode` in `engine/include/pydee/scene.h`.
+ * `plus-lighter` was previously missing here, so the one mode the engine renders
+ * as `SkBlendMode::kPlus` could not be set even by typing it.
+ */
+export const BLEND_MODES: readonly string[] = [
+  "normal",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion",
+  "hue",
+  "saturation",
+  "color",
+  "luminosity",
+  "plus-lighter",
+];
+
 export function validateBlendMode(raw: string): Validation<string> {
   const trimmed = raw.trim().toLowerCase();
-  const validModes = ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
-  if (validModes.includes(trimmed)) {
+  if (BLEND_MODES.includes(trimmed)) {
     return { ok: true, value: trimmed };
   }
   return { ok: false, error: `Must be a valid blend mode.` };
+}
+
+/** Text decoration values both renderers support. */
+export const TEXT_DECORATIONS: readonly string[] = ["none", "underline", "line-through"];
+
+export function validateTextDecoration(raw: string): Validation<string> {
+  const trimmed = raw.trim().toLowerCase();
+  if (TEXT_DECORATIONS.includes(trimmed)) {
+    return { ok: true, value: trimmed };
+  }
+  return { ok: false, error: "Must be none, underline or line-through." };
+}
+
+/** CSS `text-transform` values, applied at encode time by the renderer. */
+export const TEXT_TRANSFORMS: readonly string[] = [
+  "none",
+  "uppercase",
+  "lowercase",
+  "capitalize",
+];
+
+export function validateTextTransform(raw: string): Validation<string> {
+  const trimmed = raw.trim().toLowerCase();
+  if (TEXT_TRANSFORMS.includes(trimmed)) {
+    return { ok: true, value: trimmed };
+  }
+  return { ok: false, error: "Must be none, uppercase, lowercase or capitalize." };
+}
+
+/** Paragraph direction. The engine shapes RTL through ICU bidi analysis. */
+export const TEXT_DIRECTIONS: readonly string[] = ["ltr", "rtl"];
+
+export function validateTextDirection(raw: string): Validation<string> {
+  const trimmed = raw.trim().toLowerCase();
+  if (TEXT_DIRECTIONS.includes(trimmed)) {
+    return { ok: true, value: trimmed };
+  }
+  return { ok: false, error: "Must be ltr or rtl." };
+}
+
+/**
+ * Tracking in document pixels. Negative values are legitimate — tight tracking is
+ * a normal typographic choice — so this is not clamped to zero.
+ */
+export function validateLetterSpacing(raw: string): Validation<number> {
+  return validateNumberInRange(raw, -1000, 1000, { field: "Letter spacing" });
+}
+
+/** Absolute line advance in document pixels; 0 means the font default. */
+export function validateLineHeight(raw: string): Validation<number> {
+  return validateNumberInRange(raw, 0, COORDINATE_MAX, { field: "Line height" });
+}
+
+/** Word spacing is an SVG-renderer feature; the engine ignores it today. */
+export function validateWordSpacing(raw: string): Validation<number> {
+  return validateNumberInRange(raw, -1000, 1000, { field: "Word spacing" });
 }
 
 /** Validate a non-negative stroke width within 0..100000 px (Req 9.4). */
@@ -156,8 +239,9 @@ export interface LayerBox {
 
 /**
  * Derive an editable position/size box for a Layer, or `null` when the layer
- * has no directly editable box (groups and free-form paths). Text reports its
- * baseline position with a glyph-driven height and no editable width.
+ * has no directly editable box (groups or paths with no coordinate pairs).
+ * Text reports its baseline position with a glyph-driven height and no
+ * editable width.
  */
 export function getLayerBox(layer: DocumentLayer): LayerBox | null {
   switch (layer.kind) {

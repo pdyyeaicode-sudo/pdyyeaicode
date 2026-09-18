@@ -273,17 +273,22 @@ describe("Multi-Selection Integration", () => {
   });
 
   it("uses only the CenterStage text editor when text editing is externally managed", async () => {
+    const onLayerTextUpdate = vi.fn();
+    const onShapeDrawn = vi.fn();
+
     function TextEditingHarness(): JSX.Element {
       const [isTextEditing, setIsTextEditing] = useState(false);
       return (
         <CenterStage
           designOutput={textDesignOutput}
           activeLayer="text-1"
+          activeTool="frame"
           isTextEditing={isTextEditing}
           onTextEditCancel={() => setIsTextEditing(false)}
           onLayerSelect={vi.fn()}
-          onLayerTextUpdate={vi.fn()}
+          onLayerTextUpdate={onLayerTextUpdate}
           onLayerTransform={vi.fn()}
+          onShapeDrawn={onShapeDrawn}
           onDoubleClick={() => setIsTextEditing(true)}
         />
       );
@@ -298,7 +303,68 @@ describe("Multi-Selection Integration", () => {
     await waitFor(() => {
       expect(screen.getByRole("textbox", { name: "Edit text" })).toBeInTheDocument();
     });
-    expect(container.querySelectorAll("textarea")).toHaveLength(0);
+    expect(container.querySelectorAll("textarea")).toHaveLength(1);
+
+    const editor = screen.getByRole("textbox", { name: "Edit text" });
+    fireEvent.pointerDown(editor, { button: 0, clientX: 120, clientY: 100 });
+    fireEvent.pointerUp(window, { button: 0, clientX: 120, clientY: 100 });
+    expect(onShapeDrawn).not.toHaveBeenCalled();
+    fireEvent.change(editor, { target: { value: "Edited once" } });
+    fireEvent.blur(editor);
+    await waitFor(() => {
+      expect(container.querySelectorAll("textarea")).toHaveLength(0);
+    });
+    expect(onLayerTextUpdate).toHaveBeenCalledWith("text-element-1", "Edited once");
+
+    const textLayerAfterCommit = container.querySelector('[data-layer-id="text-1"]');
+    expect(textLayerAfterCommit).toBeInTheDocument();
+    fireEvent.doubleClick(textLayerAfterCommit as Element);
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: "Edit text" })).toBeInTheDocument();
+    });
+  });
+
+  it("places text only from an empty canvas point while the Text tool is armed", () => {
+    const onTextPlacement = vi.fn<(x: number, y: number) => void>();
+    const { container } = render(
+      <CenterStage
+        designOutput={textDesignOutput}
+        activeLayer={null}
+        activeTool="text"
+        onLayerSelect={vi.fn()}
+        onLayerTextUpdate={vi.fn()}
+        onLayerTransform={vi.fn()}
+        onTextPlacement={onTextPlacement}
+      />,
+    );
+
+    // CenterStage also renders SVG icons for its controls. Target the actual
+    // design SVG rather than whichever icon happens to be first in the DOM.
+    const svg = container.querySelector(".svg-canvas-markup > svg");
+    expect(svg).toBeInTheDocument();
+    Object.defineProperty(svg as SVGSVGElement, "getBoundingClientRect", {
+      value: () => ({ left: 0, top: 0, width: 500, height: 500 }),
+    });
+    fireEvent(
+      svg as SVGSVGElement,
+      new MouseEvent("pointerdown", { bubbles: true, button: 0, clientX: 120, clientY: 88 }),
+    );
+
+    expect(onTextPlacement).toHaveBeenCalledWith(120, 88);
+    const existingText = container.querySelector('[data-layer-id="text-1"]');
+    // jsdom does not implement SVGGraphicsElement#getBBox; provide the DOM
+    // geometry used by the existing drag listener for this pointer assertion.
+    Object.defineProperty(existingText as SVGGraphicsElement, "getBBox", {
+      value: () => ({ x: 40, y: 40, width: 100, height: 24 }),
+    });
+    Object.defineProperty(existingText?.closest(".svg-canvas-wrapper")?.parentElement as HTMLElement, "setPointerCapture", {
+      value: vi.fn(),
+    });
+    fireEvent(
+      existingText as SVGTextElement,
+      new MouseEvent("pointerdown", { bubbles: true, button: 0, clientX: 100, clientY: 100 }),
+    );
+    expect(onTextPlacement).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the TreeList and canvas synchronized from one live document", async () => {
@@ -345,7 +411,12 @@ describe("Multi-Selection Integration", () => {
               }
             }}
             onLayerTextUpdate={(layerId, nextText) => {
-              const layer = findLayer(artboard.layers, layerId);
+              const directLayer = findLayer(artboard.layers, layerId);
+              const layer = directLayer?.kind === "text"
+                ? directLayer
+                : artboard.layers.find(
+                    (candidate) => candidate.kind === "text" && candidate.elementId === layerId,
+                  );
               if (layer?.kind !== "text") {
                 return;
               }
@@ -364,7 +435,11 @@ describe("Multi-Selection Integration", () => {
     expect(screen.getByText("Canvas Headline")).toBeInTheDocument();
     expect(screen.getByText("Canvas Shape")).toBeInTheDocument();
     expect(screen.queryByText("Frame name")).not.toBeInTheDocument();
-    expect(container.querySelector('svg text[data-layer-id="text-live"]')).toHaveTextContent(
+    // Queried through the layer GROUP, which is where `data-layer-id` lives.
+    // The serializer used to repeat it on the primitive as well, which also
+    // repeated the layer's `transform` and applied it twice — a rotated layer's
+    // rotation doubled on every save. See canonicalSvg.serializeShapeElement.
+    expect(container.querySelector('svg g[data-layer-id="text-live"] text')).toHaveTextContent(
       "Live headline",
     );
 
@@ -432,16 +507,16 @@ describe("Multi-Selection Integration", () => {
       expect(orderedIds).toEqual(["text-live", "shape-live"]);
     });
 
-    const liveText = container.querySelector('svg text[data-layer-id="text-live"]');
+    const liveText = container.querySelector('svg g[data-layer-id="text-live"] text');
     expect(liveText).toBeInTheDocument();
     fireEvent.doubleClick(liveText as Element);
 
     const editor = await screen.findByRole("textbox", { name: "Edit text" });
     fireEvent.change(editor, { target: { value: "Updated from canvas" } });
-    fireEvent.keyDown(editor, { key: "Enter" });
+    fireEvent.keyDown(editor, { key: "Enter", ctrlKey: true });
 
     await waitFor(() => {
-      expect(container.querySelector('svg text[data-layer-id="text-live"]')).toHaveTextContent(
+      expect(container.querySelector('svg g[data-layer-id="text-live"] text')).toHaveTextContent(
         "Updated from canvas",
       );
     });

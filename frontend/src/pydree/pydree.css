@@ -34,21 +34,35 @@ body, #root {
 }
 
 .pydree.pydree-light {
+  /* Astryx token overrides so components inherit dark text/icons */
+  --color-background-body: #f4f5f7;
+  --color-background-surface: #fbfcff;
+  --color-background-card: #f0f1f4;
+  --color-background-muted: #e4e6ea;
+  --color-border: #e4e6ea;
+  --color-border-emphasized: #d5d7dc;
+  
+  --color-text-primary: #17181a;
+  --color-text-secondary: #5b5d63;
+  --color-icon-primary: #17181a;
+  --color-icon-secondary: #5b5d63;
+
+  /* Eye-friendly off-white backgrounds */
   --p-bg-0: var(--color-background-body);
   --p-bg-1: var(--color-background-surface);
   --p-bg-2: var(--color-background-card);
   --p-bg-3: var(--color-background-muted);
-  --p-bg-4: var(--color-accent-muted);
+  --p-bg-4: #d5d7dc; /* stronger muted */
 
   /* Canvas checkerboard */
-  --p-check-1: var(--color-background-body);
-  --p-check-2: var(--color-background-muted);
+  --p-check-1: #f4f5f7;
+  --p-check-2: #ebecef;
 
   /* Text & Icons */
   --p-fg-0: var(--color-text-primary);
   --p-fg-1: var(--color-text-secondary);
-  --p-fg-2: var(--color-icon-secondary);
-  --p-fg-hover: var(--color-text-primary);
+  --p-fg-2: #85888f;
+  --p-fg-hover: #000000;
 
   /* Borders */
   --p-line: var(--color-border);

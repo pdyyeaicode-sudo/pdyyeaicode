@@ -217,9 +217,9 @@ describe("getLayerBox", () => {
     expect(getLayerBox(text())).toEqual({ x: 40, y: 80, width: 0, height: 64 });
   });
 
-  it("returns null for groups and free-form paths", () => {
+  it("derives a box for paths with coordinates and returns null for groups", () => {
     const path: ShapeLayer = { ...rect(), id: "p", kind: "path", geometry: { type: "path", d: "M0 0 L10 10" } };
-    expect(getLayerBox(path)).toBeNull();
+    expect(getLayerBox(path)).toEqual({ x: 0, y: 0, width: 10, height: 10 });
     const group: DocumentLayer = {
       id: "g",
       role: "cta",
@@ -313,9 +313,12 @@ describe("buildPositionCommand (Req 9.2)", () => {
     expect(buildPositionCommand(rect(), "x", 10)).toBeNull();
   });
 
-  it("returns null for layers without an editable box", () => {
+  it("moves a path from its derived bounding box origin", () => {
     const path: ShapeLayer = { ...rect(), kind: "path", geometry: { type: "path", d: "M0 0 L1 1" } };
-    expect(buildPositionCommand(path, "x", 5)).toBeNull();
+    const command = buildPositionCommand(path, "x", 5);
+    expect(command).not.toBeNull();
+    const next = command!.apply(docWith(path));
+    expect((topLayer(next) as ShapeLayer).geometry).toEqual({ type: "path", d: "M 5 0 L 6 1" });
   });
 });
 

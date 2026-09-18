@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pydee drag coordinate-space harness</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      /*
+        The editor's own canvas variables, so the real CSS module resolves. Only
+        the ones the canvas host needs are declared; anything else falling back is
+        harmless because this harness measures geometry, not appearance.
+      */
+      :root {
+        --line: #333;
+        --bg-2: #1b1b1b;
+        --fg-0: #eee;
+        --fg-2: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

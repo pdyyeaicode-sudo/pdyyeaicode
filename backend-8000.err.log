@@ -1,13 +1,14 @@
-INFO:     Started server process [18660]
+INFO:     Started server process [21308]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 INFO:printrocket.svg.image_to_layers:Loading EasyOCR reader on CPU
-INFO:printrocket.svg.image_to_layers:Loading SAM mask-generation pipeline on CPU
-Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
-Device set to use cpu
-INFO:printrocket.orchestrator:{'requestId': '9da49f5b-8226-48a9-8f2a-f83b898fa10d', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
-INFO:printrocket.svg.image_to_layers:Downscaling upload for extraction from 1054x1492 to 565x800.
-INFO:printrocket.orchestrator:{'requestId': 'bb9d36e8-78ff-4d08-9194-7b0071bc5d5a', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
-INFO:printrocket.svg.image_to_layers:Downscaling upload for extraction from 1054x1492 to 565x800.
-INFO:printrocket.orchestrator:{'requestId': 'b8b4b62b-74bb-4fc1-8a8d-70693b9a6654', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
+INFO:printrocket.svg.image_to_layers:Loading Dreamer FastSAM model from FastSAM-s.pt on cpu.
+INFO:printrocket.svg.image_to_layers:FastSAM found no decorative masks; retaining the extracted foreground and text layers.
+INFO:printrocket.orchestrator:{'requestId': '421adfd2-7f6b-470e-9b0d-f7e6b6f6ee6c', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
+INFO:printrocket.svg.image_to_layers:FastSAM found no decorative masks; retaining the extracted foreground and text layers.
+INFO:printrocket.orchestrator:{'requestId': '2064f803-41b6-436c-ab1c-d228139a2c4c', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
+INFO:printrocket.svg.image_to_layers:Downscaling upload for extraction from 5333x8000 to 533x800.
+INFO:printrocket.orchestrator:{'requestId': 'ce01693c-b9b9-49f8-81cf-4a1b764e1fbc', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}
+INFO:printrocket.svg.image_to_layers:Downscaling upload for extraction from 5333x8000 to 533x800.
+INFO:printrocket.orchestrator:{'requestId': '642fa730-2eb4-4477-b3b0-bfe1be80ec1f', 'stage': 'upload-image', 'durationMs': 0.0, 'status': 'success', 'path': 'smart_image_to_layers'}

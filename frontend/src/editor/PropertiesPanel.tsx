@@ -45,6 +45,7 @@ import { EffectStackPanel } from "./components/effects/EffectStackPanel";
 
 
 import styles from "./CreativeStudio.module.css";
+import { GradientPanel } from "./gradients/GradientPanel";
 import {
   buildFilterValue,
   buildPositionCommand,
@@ -63,6 +64,13 @@ import {
   validateOpacityPercent,
   validateBlendMode,
   validateStrokeWidth,
+  validateLetterSpacing,
+  validateLineHeight,
+  validateWordSpacing,
+  BLEND_MODES,
+  TEXT_DECORATIONS,
+  TEXT_DIRECTIONS,
+  TEXT_TRANSFORMS,
   type LayerEffects,
   type Validation,
 } from "./propertyEditing";
@@ -70,6 +78,7 @@ import type { Command, DocumentLayer, ShapeLayer } from "./types/documentModel";
 import type { CreativeDocument } from "./types/documentModel";
 import type { LayerUpdate } from "../hooks/useDesignStudio";
 import type { SVGLayer } from "../types";
+import { buildParametricPath } from "./geometry/GeometryEngine";
 
 export interface PropertiesPanelProps {
   /** The single selected layer, or null when nothing (or many) is selected. */
@@ -143,7 +152,7 @@ export function PropertiesPanel({
           dispatchCommand={dispatchCommand}
         />
         ) : hasDocumentEditor ? (
-          <SingleLayerProperties layer={documentLayer} dispatchCommand={dispatchCommand} activeLayers={activeLayers} />
+          <SingleLayerProperties layer={documentLayer} dispatchCommand={dispatchCommand} activeLayers={activeLayers} defs={document ? getActiveArtboard(document)?.defs : undefined} />
       ) : selectedLayer ? (
         <SingleSelectionView
           selectedLayer={selectedLayer}
@@ -455,6 +464,11 @@ interface SingleLayerPropertiesProps {
   layer: DocumentLayer;
   dispatchCommand: (command: Command) => void;
   activeLayers?: DocumentLayer[] | null;
+  /**
+   * The active artboard's `<defs>`, needed by the gradient panel because paint
+   * servers live on the artboard rather than on the layer.
+   */
+  defs?: string;
 }
 
 /**
@@ -465,7 +479,7 @@ interface SingleLayerPropertiesProps {
  * Command (Req 9.3, 9.5). Effects (shadow/blur) live in a collapsed advanced
  * section (Req 13.11) and apply as an SVG filter (Req 9.6).
  */
-function SingleLayerProperties({ layer, dispatchCommand, activeLayers }: SingleLayerPropertiesProps): JSX.Element {
+function SingleLayerProperties({ layer, dispatchCommand, activeLayers, defs }: SingleLayerPropertiesProps): JSX.Element {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const activeLayersProp = ((): DocumentLayer[] | null => null)();
   const box = getLayerBox(layer);
@@ -751,6 +765,42 @@ function SingleLayerProperties({ layer, dispatchCommand, activeLayers }: SingleL
                 onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "geometry", (layer as any).geometry, { ...(layer as any).geometry, rx: value, ry: value }))}
               />
             ) : null}
+            {(layer as any).geometry?.type === "parametric" ? (
+              <>
+                <div style={{ padding: "8px 0", fontWeight: 600, fontSize: "12px", borderTop: "1px solid var(--p-border)", marginTop: "12px" }}>
+                  Parametric Settings
+                </div>
+                {Object.entries((layer as any).geometry.parameters).map(([key, val]) => (
+                  <CommitField
+                    key={key}
+                    label={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                    value={String(val)}
+                    validate={(raw) => validateNumberInRange(raw, -10000, 10000, { field: key })}
+                    onCommit={(value) => dispatchCommand(setPropertyCommand(
+                      layer.id, 
+                      "geometry", 
+                      (layer as any).geometry, 
+                      { 
+                        ...(layer as any).geometry, 
+                        parameters: { ...(layer as any).geometry.parameters, [key]: value } 
+                      }
+                    ))}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  style={{ width: "100%", marginTop: "8px" }}
+                  onClick={() => {
+                    const geom = (layer as any).geometry;
+                    const d = buildParametricPath(geom.shapeType, { x: geom.x, y: geom.y, width: geom.width, height: geom.height }, geom.parameters);
+                    dispatchCommand(setPropertyCommand(layer.id, "geometry", geom, { type: "path", d }));
+                  }}
+                >
+                  Convert to Path
+                </button>
+              </>
+            ) : null}
           </>
         ) : null}
         </CollapsibleSection>
@@ -766,11 +816,21 @@ function SingleLayerProperties({ layer, dispatchCommand, activeLayers }: SingleL
             <SelectField
               label="Blend mode"
               value={layer.blendMode || "normal"}
-              options={["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"]}
+              options={BLEND_MODES}
               onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "blendMode", layer.blendMode || "normal", value))}
             />
           </div>
         </CollapsibleSection>
+
+        {/*
+          Gradient authoring. Placed next to Blend & Opacity because it is a paint
+          decision, and rendered for any layer that has a fill. The engine already
+          supported linear and radial gradients with both units, all three spread
+          methods and a focal point; this is the control surface for them.
+        */}
+        {"fill" in layer && defs !== undefined ? (
+          <GradientPanel layer={layer} defs={defs} dispatchCommand={dispatchCommand} />
+        ) : null}
 
         {layer.kind === "image" ? (
           <>
@@ -913,6 +973,49 @@ function SingleLayerProperties({ layer, dispatchCommand, activeLayers }: SingleL
               value={text.textAlign}
               options={TEXT_ALIGN_OPTIONS}
               onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "textAlign", text.textAlign, value))}
+            />
+            {/*
+              Typography the renderers already implement but that had no control.
+              Both the SVG backend and the Skia engine honour every value here —
+              decoration and text-transform are asserted by the cross-language
+              parity harness — so leaving them unreachable meant shipping engine
+              capability that no user could use.
+            */}
+            <SelectField
+              label="Decoration"
+              value={text.textDecoration ?? "none"}
+              options={TEXT_DECORATIONS}
+              onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "textDecoration", text.textDecoration ?? "none", value))}
+            />
+            <SelectField
+              label="Letter case"
+              value={text.textTransform ?? "none"}
+              options={TEXT_TRANSFORMS}
+              onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "textTransform", text.textTransform ?? "none", value))}
+            />
+            <CommitField
+              label="Letter spacing"
+              value={String(text.letterSpacing ?? 0)}
+              validate={validateLetterSpacing}
+              onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "letterSpacing", text.letterSpacing ?? 0, value))}
+            />
+            <CommitField
+              label="Line height"
+              value={String(text.lineHeight ?? 0)}
+              validate={validateLineHeight}
+              onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "lineHeight", text.lineHeight ?? 0, value))}
+            />
+            <CommitField
+              label="Word spacing"
+              value={String(text.wordSpacing ?? 0)}
+              validate={validateWordSpacing}
+              onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "wordSpacing", text.wordSpacing ?? 0, value))}
+            />
+            <SelectField
+              label="Direction"
+              value={text.direction ?? "ltr"}
+              options={TEXT_DIRECTIONS}
+              onCommit={(value) => dispatchCommand(setPropertyCommand(layer.id, "direction", text.direction ?? "ltr", value))}
             />
           </div>
         </div>

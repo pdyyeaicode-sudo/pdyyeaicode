@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 import { CreativeStudio } from "./CreativeStudio";
 
@@ -21,7 +21,7 @@ describe("CreativeStudio shell", () => {
     expect(screen.getByLabelText("Undo")).toBeInTheDocument();
     expect(screen.getByLabelText("Redo")).toBeInTheDocument();
     expect(screen.getByLabelText("AI assistant")).toBeInTheDocument();
-    expect(screen.getByLabelText("Export options")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export PNG" })).toBeInTheDocument();
     expect(screen.getByLabelText("Profile")).toBeInTheDocument();
     expect(screen.getByLabelText("Search")).toBeInTheDocument();
     expect(screen.getByLabelText("Collaborators")).toBeInTheDocument();
@@ -45,8 +45,9 @@ describe("CreativeStudio shell", () => {
   it("exposes the current left-sidebar sections", () => {
     render(<CreativeStudio />);
 
+    const navigation = screen.getByRole("navigation", { name: "Sections" });
     for (const label of ["Generate", "Templates", "Text", "Photos", "Elements", "Uploads", "Background", "Layers", "Resize"]) {
-      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+      expect(within(navigation).getByRole("button", { name: label })).toBeInTheDocument();
     }
   });
 

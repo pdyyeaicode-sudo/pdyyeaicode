@@ -63,8 +63,22 @@ export interface UseViewportResult {
   setViewport: React.Dispatch<React.SetStateAction<Viewport>>;
 }
 
-export function useViewport(initial: Viewport = DEFAULT_VIEWPORT, isHandToolActive = false): UseViewportResult {
-  const [viewport, setViewport] = useState<Viewport>(initial);
+export function useViewport(
+  initial: Viewport | React.RefObject<((clientX: number, clientY: number) => string | null) | null> = DEFAULT_VIEWPORT,
+  isHandToolActive = false,
+  engineHitTesterRef?: React.RefObject<((clientX: number, clientY: number) => string | null) | null>
+): UseViewportResult {
+  // Handle overloaded signature for backwards compatibility
+  let actualInitial = DEFAULT_VIEWPORT;
+  let actualHitTester = engineHitTesterRef;
+  
+  if (initial && typeof initial === 'object' && 'current' in initial) {
+    actualHitTester = initial as React.RefObject<((clientX: number, clientY: number) => string | null) | null>;
+  } else if (initial) {
+    actualInitial = initial as Viewport;
+  }
+
+  const [viewport, setViewport] = useState<Viewport>(actualInitial);
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [hasInitialized, setHasInitialized] = useState<boolean>(false);
 
@@ -170,7 +184,8 @@ export function useViewport(initial: Viewport = DEFAULT_VIEWPORT, isHandToolActi
       const isBackgroundLeftDrag =
         event.button === 0 &&
         !event.shiftKey &&
-        !(event.target as Element).closest("[data-layer-id], [data-element-id]");
+        !(event.target as Element).closest("[data-layer-id], [data-element-id]") &&
+        !actualHitTester?.current?.(event.clientX, event.clientY);
 
       if (!isMiddleDrag && !isSpaceDrag && !isBackgroundLeftDrag) {
         return;

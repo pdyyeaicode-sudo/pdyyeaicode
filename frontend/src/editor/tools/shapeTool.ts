@@ -90,7 +90,17 @@ export interface PathInput {
   transform?: string;
 }
 
-export type ShapeInput = RectInput | EllipseInput | LineInput | PolygonInput | PathInput;
+export interface ParametricInput {
+  kind: "parametric";
+  shapeType: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  parameters: Record<string, number | boolean | string>;
+}
+
+export type ShapeInput = RectInput | EllipseInput | LineInput | PolygonInput | PathInput | ParametricInput;
 
 /**
  * Context the caller supplies for a creation. `existingIds` is the set of
@@ -231,8 +241,23 @@ function buildBlueprint(input: ShapeInput): ShapeBlueprint | null {
       if (input.d.trim() === "") {
         return null;
       }
-      // Consider all path shapes from assetShapes as closed shapes for fill purposes
-      return { geometry: { type: "path", d: input.d }, name: "Path", closed: true };
+      // Asset paths that explicitly opt out of fill are open strokes (arrows,
+      // connectors, and zigzags); other paths remain closed filled shapes.
+      return { geometry: { type: "path", d: input.d }, name: "Path", closed: input.fill !== "none" };
+    }
+    case "parametric": {
+      const x = snapHalf(input.x);
+      const y = snapHalf(input.y);
+      const width = snapHalf(input.width);
+      const height = snapHalf(input.height);
+      if (width === 0 || height === 0) {
+        return null;
+      }
+      return {
+        geometry: { type: "parametric", shapeType: input.shapeType, x, y, width, height, parameters: input.parameters },
+        name: input.shapeType.charAt(0).toUpperCase() + input.shapeType.slice(1),
+        closed: true, // we assume all parametric shapes are closed currently
+      };
     }
     default: {
       // Exhaustiveness guard: every ShapeInput kind is handled above.
@@ -281,6 +306,10 @@ export function buildShapeLayer(input: ShapeInput, ctx: ShapeToolContext): Shape
     if (input.fill) base.fill = input.fill;
     if (input.stroke) base.stroke = input.stroke;
     if (input.strokeWidth) base.strokeWidth = input.strokeWidth;
+    if (input.fill === "none" && base.stroke === undefined) {
+      base.stroke = color;
+      base.strokeWidth = input.strokeWidth ?? DEFAULT_LINE_STROKE_WIDTH;
+    }
   }
 
   if (base.fill === undefined && base.stroke === undefined) {

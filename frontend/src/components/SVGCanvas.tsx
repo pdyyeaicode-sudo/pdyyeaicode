@@ -4,7 +4,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { useCanvasDrag } from "../editor/useCanvasDrag";
+import type { DragSceneNode } from "../editor/useCanvasDrag";
+import type { LiveTransformStore } from "../editor/interaction/liveTransformStore";
+import type { DragGestureEvent } from "../editor/interaction/gestureChannel";
 import { SmartGuides } from "../editor/SmartGuides";
+import DOMPurify from 'dompurify';
 import {
   gradientIdForFill,
   gradientVector,
@@ -20,6 +24,35 @@ export interface SVGCanvasProps {
   onLayerSelect: (layerId: string) => void;
   onLayerTextUpdate: (elementId: string, newText: string) => void;
   onLayerTransform: (layerId: string, dx: number, dy: number) => void;
+  /**
+   * Authoritative transform chain for a layer, supplied by the owner.
+   *
+   * Passed in rather than derived here because this component receives the
+   * viewport-WRAPPED markup, and parsing that makes `canonicalSvg` synthesize
+   * layer ids that do not match the document. The owner has the unwrapped output,
+   * so it is the only place the scene can be built with real ids.
+   */
+  resolveSceneNode?: (layerId: string) => DragSceneNode | undefined;
+  /** Retained gesture state, forwarded to `useCanvasDrag`. */
+  liveTransforms?: LiveTransformStore;
+  /** Engine hit testing, forwarded to the drag hook. */
+  hitTestClient?: (clientX: number, clientY: number) => string | null;
+  /**
+   * Hide the SVG design objects, because another surface is painting them.
+   *
+   * `visibility: hidden` rather than unmounting: the subtree keeps its layout, so
+   * `getBBox`, text-editor positioning and the export path still work, while nothing
+   * is rasterised. Unmounting is a later step and needs text editing moved off the
+   * DOM first.
+   */
+  hideDesignObjects?: boolean;
+  /**
+   * Whether the drag preview writes the SVG `transform` attribute.
+   *
+   * False when the engine previews the gesture, so a drag mutates no design object in
+   * the DOM at all. The gesture still flows through `onDragGesture`.
+   */
+  domPreview?: boolean;
   onResize?: (layerId: string, prevBox: { x: number; y: number; width: number; height: number }, nextBox: { x: number; y: number; width: number; height: number }) => void;
   onRotate?: (layerId: string, prev: { transform?: string }, next: { transform?: string }) => void;
   viewport?: { zoom: number; panX: number; panY: number };
@@ -30,6 +63,14 @@ export interface SVGCanvasProps {
   allowInlineTextEditing?: boolean;
   /** Notify a parent-owned editor about a layer double-click. */
   onLayerDoubleClick?: (layerId: string, textElementId?: string) => void;
+  /**
+   * Live drag reporting in document pixels, at pointer rate.
+   *
+   * Passed straight through to `useCanvasDrag`. It exists so a renderer mounted
+   * as a sibling of this component can follow a drag without the per-frame
+   * offset being lifted into React state.
+   */
+  onDragGesture?: (event: DragGestureEvent) => void;
 }
 
 interface TextEditorState {
@@ -73,6 +114,11 @@ export function SVGCanvas({
   onLayerSelect,
   onLayerTextUpdate,
   onLayerTransform,
+  resolveSceneNode,
+  liveTransforms,
+  hitTestClient,
+  hideDesignObjects = false,
+  domPreview = true,
   onResize,
   onRotate,
   viewport,
@@ -80,8 +126,27 @@ export function SVGCanvas({
   snappingEnabled = true,
   allowInlineTextEditing = true,
   onLayerDoubleClick,
+  onDragGesture,
 }: SVGCanvasProps): JSX.Element | null {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Values read at EVENT time by the per-layer listener effect below.
+   *
+   * They are mirrored into refs rather than listed as dependencies because that
+   * effect walks every `[data-layer-id]` element and re-attaches two or three
+   * listeners per element, re-runs `applyGradientToElement`, and rewrites inline
+   * styles across the whole layer list. Having `viewport.zoom` in the deps meant
+   * all of that ran on every wheel notch, and inline callbacks from the parent
+   * meant it ran on every parent render — while `zoom` is only consumed inside a
+   * double-click handler, at event time.
+   */
+  const onLayerSelectRef = useRef(onLayerSelect);
+  const onLayerDoubleClickRef = useRef(onLayerDoubleClick);
+  const zoomRef = useRef(viewport?.zoom ?? 1);
+  onLayerSelectRef.current = onLayerSelect;
+  onLayerDoubleClickRef.current = onLayerDoubleClick;
+  zoomRef.current = viewport?.zoom ?? 1;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputValueRef = useRef<string>("");
   const debounceTimersRef = useRef<Record<string, number>>({});
@@ -95,15 +160,25 @@ export function SVGCanvas({
 
   // Unified drag state machine (miniPaint pattern): zero React re-renders during
   // move; DOM transform applied directly; model committed only on pointerup.
+  //
+  // `resolveSceneNode` is the authoritative transform chain for the dragged
+  // layer: the same scene, the same `worldTransform` the selection overlay
+  // derives its box from and the renderers paint with. Without it the drag and
+  // the outline would be working from different geometry again.
   useCanvasDrag({
     containerRef: containerRef as React.RefObject<HTMLDivElement>,
     zoom: viewport?.zoom ?? 1,
     onLayerTransform,
+    resolveSceneNode,
+    liveTransforms,
+    hitTestClient,
+    domPreview,
     onLayerClick: onLayerSelect,
     onSnapGuidesChange: setGuides,
     artboardBounds: canvasSize,
     snappingEnabled,
     selectedLayerIds: activeLayer ? [activeLayer] : [],
+    onDragGesture,
   });
 
   useEffect(() => {
@@ -189,7 +264,7 @@ export function SVGCanvas({
       const handleClick = (event: MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        onLayerSelect(layerId);
+        onLayerSelectRef.current(layerId);
       };
 
       el.addEventListener("click", handleClick);
@@ -204,7 +279,7 @@ export function SVGCanvas({
         if (!allowInlineTextEditing) {
           event.preventDefault();
           event.stopPropagation();
-          onLayerDoubleClick?.(
+          onLayerDoubleClickRef.current?.(
             layerId,
             textElement?.getAttribute("data-element-id") ?? undefined,
           );
@@ -240,7 +315,7 @@ export function SVGCanvas({
         // viewport.zoom so the overlay textarea matches the visual size on screen.
         const computedStyle = window.getComputedStyle(textElement);
         const baseFontPx = parseFloat(computedStyle.fontSize) || 16;
-        const currentZoom = viewport?.zoom ?? 1;
+        const currentZoom = zoomRef.current;
         const fontSize = `${baseFontPx * currentZoom}px`;
         const fontFamily = computedStyle.fontFamily;
         const fontWeight = computedStyle.fontWeight;
@@ -288,9 +363,7 @@ export function SVGCanvas({
     activeLayer,
     allowInlineTextEditing,
     designOutput?.composedSVG,
-    onLayerDoubleClick,
-    onLayerSelect,
-    viewport?.zoom,
+    focusedLayerId,
   ]);
 
 
@@ -535,7 +608,10 @@ export function SVGCanvas({
     }
 
     targetGroup.setAttribute("data-color", nextColor);
-    syncDesignOutputMarkup(designOutput, svgRoot);
+    // The prop is NOT mutated here. It is the parent's memo result and is shared
+    // with history snapshots; writing to it silently rewrote past undo states and
+    // baked live editor decorations into the exported document. The colour change
+    // reaches the document through the event below and the command layer.
     window.dispatchEvent(
       new CustomEvent<LayerColorEventDetail>("printrocket:layer-color-updated", {
         detail: {
@@ -567,8 +643,24 @@ export function SVGCanvas({
       >
         <div
           className="svg-canvas-markup"
-          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
-          dangerouslySetInnerHTML={{ __html: designOutput.composedSVG }}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            /*
+              Hidden, not unmounted, when the engine paints the design.
+
+              `visibility: hidden` keeps the subtree laid out, so `getBBox`, the text
+              editor's positioning and the canonical-SVG/export path all still work,
+              while the browser rasterises none of it. That makes the canvas the only
+              visual surface without breaking the compatibility backend — which the
+              migration is explicitly required to keep.
+            */
+            visibility: hideDesignObjects ? "hidden" : "visible",
+          }}
+          data-design-objects-hidden={hideDesignObjects ? "true" : "false"}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(designOutput.composedSVG, { USE_PROFILES: { svg: true } }) }}
         />
         <svg
           style={{
@@ -819,11 +911,27 @@ function buildImageFilter(fromColor: string, toColor: string): string {
   return `hue-rotate(${hueRotate}deg) saturate(${saturation}%) brightness(${brightness}%)`;
 }
 
-function syncDesignOutputMarkup(designOutput: DesignOutput, svgRoot: SVGSVGElement): void {
-  const serializer = new XMLSerializer();
-  designOutput.composedSVG = serializer.serializeToString(svgRoot);
-  designOutput.svgLayers = extractLayers(svgRoot, designOutput.svgLayers);
-}
+/**
+ * Previously this assigned `designOutput.composedSVG` and
+ * `designOutput.svgLayers` in place.
+ *
+ * Two things were wrong with that. The object is the parent's `useMemo` result,
+ * so mutating it left React's cache holding edited markup it had no way to
+ * invalidate, and the parent's real `designOutput` never learned about the edit.
+ * Worse, any history snapshot sharing the reference was rewritten too, so undoing
+ * a colour change could not restore the previous markup — the "previous" snapshot
+ * had been mutated as well.
+ *
+ * It also serialized the LIVE editor DOM, which by that point carries injected
+ * selection outlines, generated gradient defs, and inline `style` and `opacity`
+ * writes — all of which were baked into the exported print artifact, including an
+ * `opacity: 0` on whichever headline happened to be open in the text editor.
+ *
+ * Colour edits already reach the document through `queueLayerColorUpdate` and the
+ * command layer, which is the authoritative path. This function is deliberately
+ * gone rather than reimplemented: there was nothing it did that the command layer
+ * does not already do correctly.
+ */
 
 function extractLayers(svgRoot: SVGSVGElement, previousLayers: SVGLayer[]): SVGLayer[] {
   const serializer = new XMLSerializer();

@@ -4,7 +4,7 @@ import logging
 import math
 import re
 from html import escape
-from typing import Final
+from typing import Final, Optional
 
 from shared.models import DesignOutput, LayoutBox, LayoutRole, PrintMeta, RealizedBlueprint, SVGLayer, StyleDecision
 
@@ -494,7 +494,7 @@ def _wrap_text(content: str, box_width: float, font_size: float, role: LayoutRol
     return lines or [normalized_content]
 
 
-def _shadow_attribute(shadow: str | None) -> str:
+def _shadow_attribute(shadow: Optional[str]) -> str:
     if shadow is None or not shadow.strip():
         return ""
     return f' style="filter: drop-shadow({escape(shadow.strip(), quote=True)})"'

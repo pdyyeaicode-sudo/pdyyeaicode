@@ -9,6 +9,7 @@ import { setPropertyCommand, type LayerPropName } from "./commands/setPropertyCo
 import type { Command, DocumentLayer } from "./types/documentModel";
 import { Bold, Italic, Underline } from "lucide-react";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
+import { motion } from "framer-motion";
 
 export interface TextFormattingToolbarProps {
   layer: DocumentLayer;
@@ -158,8 +159,11 @@ export function TextFormattingToolbar({
   }
   
   return (
-    <div
+    <motion.div
       ref={toolbarRef}
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", damping: 25, stiffness: 350 }}
       style={{
         position: "fixed",
         top: `${top}px`,
@@ -341,6 +345,6 @@ export function TextFormattingToolbar({
       >
         ✕
       </button>
-    </div>
+    </motion.div>
   );
 }

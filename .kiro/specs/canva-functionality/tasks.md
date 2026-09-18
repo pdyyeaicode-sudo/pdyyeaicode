@@ -80,13 +80,13 @@
 
 - [ ] 6. Smart Guides and Enhanced Snapping
   - [ ] 6.1 Create `SmartGuides.tsx` component with SVG line rendering
-  - [~] 6.2 Extend `snapping.ts` with `computeSnapGuides()` function
-  - [~] 6.3 Implement guide computation: layer edges + artboard edges + centers
-  - [~] 6.4 Add multiple simultaneous guide support
-  - [~] 6.5 Integrate guide rendering into SelectionOverlay drag handlers
+  - [ ] 6.2 Extend `snapping.ts` with `computeSnapGuides()` function
+  - [ ] 6.3 Implement guide computation: layer edges + artboard edges + centers
+  - [ ] 6.4 Add multiple simultaneous guide support
+  - [ ] 6.5 Integrate guide rendering into SelectionOverlay drag handlers
   - [x] 6.6 Add Cmd/Ctrl modifier to temporarily disable snapping
-  - [~] 6.7 Style guides: magenta color, 1px stroke, full artboard extent
-  - [~] 6.8 Implement guide clearing on drag end
+  - [ ] 6.7 Style guides: magenta color, 1px stroke, full artboard extent
+  - [ ] 6.8 Implement guide clearing on drag end
   - [ ]* 6.9 Write unit tests for guide computation with various layer positions
   - [ ]* 6.10 Write integration test: drag layer near another → verify guide appears
   - **Acceptance**: WHEN dragging near edge THEN guide appears; WHEN dragging near center THEN center guide; WHEN align to multiple THEN multiple guides; WHEN drag ends THEN guides disappear; WHEN Cmd/Ctrl held THEN snapping disabled; WHEN guide shown THEN extends across artboard
@@ -94,9 +94,9 @@
   - _Requirements: 7.1-7.10; Dependencies: Task 1; Estimated effort: 5 hours_
 
 - [ ] 7. Group and Ungroup Operations
-  - [~] 7.1 Extend existing `groupCommand.ts` to support multi-selection grouping
-  - [~] 7.2 Create `ungroupCommand.ts` to dissolve groups and promote children
-  - [~] 7.3 Implement transform preservation: compute relative positions for children
+  - [ ] 7.1 Extend existing `groupCommand.ts` to support multi-selection grouping
+  - [ ] 7.2 Create `ungroupCommand.ts` to dissolve groups and promote children
+  - [ ] 7.3 Implement transform preservation: compute relative positions for children
   - [x] 7.4 Add group isolation mode state to useCreativeStudio
   - [x] 7.5 Implement double-click on group to enter isolation mode
   - [x] 7.6 Create breadcrumb navigation component for isolation mode
@@ -109,15 +109,15 @@
   - _Requirements: 5.1-5.10; Dependencies: Task 1, Task 3; Estimated effort: 6 hours_
 
 - [ ] 8. Marquee Selection
-  - [~] 8.1 Add marquee state to `useCanvasDrag` hook (extend existing drag intent)
-  - [~] 8.2 Detect drag-start on empty canvas (not on layer)
-  - [~] 8.3 Render selection rectangle in SelectionOverlay during drag
-  - [~] 8.4 Implement screen-to-canvas coordinate transformation for hit testing
-  - [~] 8.5 Implement layer intersection testing: layer bounds vs marquee bounds
-  - [~] 8.6 Select all enclosed layers on pointerup
-  - [~] 8.7 Clear selection if marquee encloses zero layers
-  - [~] 8.8 Handle viewport transform (zoom/pan) in hit testing
-  - [~] 8.9 Style marquee: dashed border, semi-transparent fill
+  - [ ] 8.1 Add marquee state to `useCanvasDrag` hook (extend existing drag intent)
+  - [ ] 8.2 Detect drag-start on empty canvas (not on layer)
+  - [ ] 8.3 Render selection rectangle in SelectionOverlay during drag
+  - [ ] 8.4 Implement screen-to-canvas coordinate transformation for hit testing
+  - [ ] 8.5 Implement layer intersection testing: layer bounds vs marquee bounds
+  - [ ] 8.6 Select all enclosed layers on pointerup
+  - [ ] 8.7 Clear selection if marquee encloses zero layers
+  - [ ] 8.8 Handle viewport transform (zoom/pan) in hit testing
+  - [ ] 8.9 Style marquee: dashed border, semi-transparent fill
   - [ ]* 8.10 Write integration test: drag empty canvas → verify layers inside selected
   - **Acceptance**: WHEN drag on empty canvas THEN marquee appears; WHEN drag continues THEN updates real-time; WHEN released THEN enclosed layers selected; WHEN encloses zero THEN selection cleared; WHEN viewport zoomed/panned THEN correct testing; WHEN cancelled THEN unchanged
   - **Technical**: Distinguish move vs marquee intent; Hit test: layer bounds fully inside marquee; Coordinate transform: screen → viewport → canvas; Visual: 1px dashed, rgba(0,120,255,0.1); Use RAF if needed
@@ -125,28 +125,28 @@
 
 
 - [ ] 9. Grid and Ruler Overlays
-  - [~] 9.1 Create `GridOverlay.tsx` with SVG pattern-based rendering
-  - [~] 9.2 Implement adaptive grid sizing based on zoom level
-  - [~] 9.3 Add grid enable/disable toggle to TopBar or BottomPanel
-  - [~] 9.4 Create `RulerOverlay.tsx` with Canvas 2D rendering
-  - [~] 9.5 Implement ruler tick marks (every 10px) and labels (every 50px)
-  - [~] 9.6 Add horizontal and vertical ruler components
-  - [~] 9.7 Add ruler enable/disable toggle
-  - [~] 9.8 Implement dragging indicator on ruler (shows current position)
-  - [~] 9.9 Update grid/ruler on viewport zoom/pan changes
+  - [ ] 9.1 Create `GridOverlay.tsx` with SVG pattern-based rendering
+  - [ ] 9.2 Implement adaptive grid sizing based on zoom level
+  - [ ] 9.3 Add grid enable/disable toggle to TopBar or BottomPanel
+  - [ ] 9.4 Create `RulerOverlay.tsx` with Canvas 2D rendering
+  - [ ] 9.5 Implement ruler tick marks (every 10px) and labels (every 50px)
+  - [ ] 9.6 Add horizontal and vertical ruler components
+  - [ ] 9.7 Add ruler enable/disable toggle
+  - [ ] 9.8 Implement dragging indicator on ruler (shows current position)
+  - [ ] 9.9 Update grid/ruler on viewport zoom/pan changes
   - [ ]* 9.10 Write visual regression tests for grid at various zoom levels
   - **Acceptance**: WHEN grid enabled THEN 10px base spacing shown; WHEN zoom <50% THEN spacing adapts; WHEN zoom >200% THEN spacing adapts; WHEN rulers enabled THEN shown at edges; WHEN dragging THEN ruler shows position; WHEN disabled THEN hidden; WHEN grid+snapping THEN snap to grid intersections
   - **Technical**: Grid: SVG <pattern> for performance; Adaptive: 10px base, 20px if zoom<0.5, 40px if zoom<0.25, 5px if zoom>2; Rulers: fixed-position, 20px height/width; Grid style: rgba(0,0,0,0.1) light, rgba(255,255,255,0.1) dark
   - _Requirements: 12.1-12.10; Dependencies: none; Estimated effort: 5 hours_
 
 - [ ] 10. Performance Optimizations
-  - [~] 10.1 Create `useVisibilityCulling.ts` hook to compute visible layer IDs
-  - [~] 10.2 Integrate culling in SVGCanvas: only render visible layers
-  - [~] 10.3 Add `will-change: transform` CSS hint to layer groups
+  - [ ] 10.1 Create `useVisibilityCulling.ts` hook to compute visible layer IDs
+  - [ ] 10.2 Integrate culling in SVGCanvas: only render visible layers
+  - [ ] 10.3 Add `will-change: transform` CSS hint to layer groups
   - [x] 10.4 Verify text input debouncing is 300ms in InlineTextEditor
   - [x] 10.5 Add selection change batching with 16ms debounce (1 frame)
-  - [~] 10.6 Implement performance monitoring using Performance API
-  - [~] 10.7 Log warning if FPS drops below 50 during interactions
+  - [ ] 10.6 Implement performance monitoring using Performance API
+  - [ ] 10.7 Log warning if FPS drops below 50 during interactions
   - [x] 10.8 Add layer count warning in UI when >100 layers
   - [ ]* 10.9 Benchmark drag performance with 100+ layers
   - [ ]* 10.10 Write performance tests measuring FPS during drag/zoom/pan
@@ -155,15 +155,15 @@
   - _Requirements: 13.1-13.10; Dependencies: none; Estimated effort: 4 hours_
 
 - [ ] 11. Text Formatting Enhancements
-  - [~] 11.1 Create `TextFormattingToolbar.tsx` component with floating position
-  - [~] 11.2 Extend `TextLayer` type with fontWeight, fontStyle, textDecoration fields
-  - [~] 11.3 Implement toolbar show/hide logic: appears on text selection
-  - [~] 11.4 Add bold button: toggles fontWeight between "normal" and "bold"
-  - [~] 11.5 Add italic button: toggles fontStyle between "normal" and "italic"
-  - [~] 11.6 Add underline button: toggles textDecoration
-  - [~] 11.7 Add color picker: dispatches setPropertyCommand with fill color
-  - [~] 11.8 Position toolbar above text selection using bounding rect
-  - [~] 11.9 Apply formats via setPropertyCommand (single undo per format change)
+  - [ ] 11.1 Create `TextFormattingToolbar.tsx` component with floating position
+  - [ ] 11.2 Extend `TextLayer` type with fontWeight, fontStyle, textDecoration fields
+  - [ ] 11.3 Implement toolbar show/hide logic: appears on text selection
+  - [ ] 11.4 Add bold button: toggles fontWeight between "normal" and "bold"
+  - [ ] 11.5 Add italic button: toggles fontStyle between "normal" and "italic"
+  - [ ] 11.6 Add underline button: toggles textDecoration
+  - [ ] 11.7 Add color picker: dispatches setPropertyCommand with fill color
+  - [ ] 11.8 Position toolbar above text selection using bounding rect
+  - [ ] 11.9 Apply formats via setPropertyCommand (single undo per format change)
   - [ ]* 11.10 Write integration test: select text → click bold → verify fontWeight updated
   - **Acceptance**: WHEN double-click text THEN inline edit mode; WHEN text selected in edit mode THEN toolbar appears; WHEN bold clicked THEN fontWeight toggles; WHEN italic clicked THEN fontStyle toggles; WHEN color changed THEN updates immediately; WHEN format applied THEN single undo step; WHEN edit mode exited THEN toolbar disappears
   - **Technical**: For v1: format entire text layer (no character-level spans); Position: compute bounding rect, offset 40px above; Handle screen edges: flip below if near top; Future: support <tspan> for character-level; Color picker: HTML input type="color" or custom palette
@@ -185,13 +185,13 @@
   - _Requirements: 16.1-16.10; Dependencies: Task 3; Estimated effort: 4 hours_
 
 - [ ] 13. Batch Operations and Commands
-  - [~] 13.1 Create `batchTranslateCommand.ts` for multi-layer translation
+  - [ ] 13.1 Create `batchTranslateCommand.ts` for multi-layer translation
   - [x] 13.2 Create `batchPropertyCommand.ts` for applying property to multiple layers
-  - [~] 13.3 Create `batchDeleteCommand.ts` for deleting multiple layers (extend existing)
-  - [~] 13.4 Implement lock/unlock all for multi-selection
-  - [~] 13.5 Implement hide/show all for multi-selection
-  - [~] 13.6 Add z-order batch operations: bring all forward, send all backward
-  - [~] 13.7 Filter locked layers from batch operations
+  - [ ] 13.3 Create `batchDeleteCommand.ts` for deleting multiple layers (extend existing)
+  - [ ] 13.4 Implement lock/unlock all for multi-selection
+  - [ ] 13.5 Implement hide/show all for multi-selection
+  - [ ] 13.6 Add z-order batch operations: bring all forward, send all backward
+  - [ ] 13.7 Filter locked layers from batch operations
   - [ ]* 13.8 Write unit tests for each batch command (apply/undo round-trip)
   - [ ]* 13.9 Write property-based test: batch operation → undo → verify state restored
   - [ ]* 13.10 Write integration test: select 5 layers → delete → undo → verify all restored
@@ -200,14 +200,14 @@
   - _Requirements: 14.1-14.10; Dependencies: Task 1, Task 2, Task 4; Estimated effort: 4 hours_
 
 - [ ] 14. Accessibility Improvements
-  - [~] 14.1 Add visible focus indicators to layer elements on canvas
-  - [~] 14.2 Implement Tab/Shift+Tab to cycle through layers
-  - [~] 14.3 Add ARIA labels to all interactive controls (buttons, inputs)
-  - [~] 14.4 Implement focus trapping in ContextMenu and modals
-  - [~] 14.5 Add aria-live region for selection change announcements
-  - [~] 14.6 Implement Enter key to select focused layer
-  - [~] 14.7 Implement Space key on focused text layer to enter edit mode
-  - [~] 14.8 Add keyboard navigation instructions to help panel
+  - [ ] 14.1 Add visible focus indicators to layer elements on canvas
+  - [ ] 14.2 Implement Tab/Shift+Tab to cycle through layers
+  - [ ] 14.3 Add ARIA labels to all interactive controls (buttons, inputs)
+  - [ ] 14.4 Implement focus trapping in ContextMenu and modals
+  - [ ] 14.5 Add aria-live region for selection change announcements
+  - [ ] 14.6 Implement Enter key to select focused layer
+  - [ ] 14.7 Implement Space key on focused text layer to enter edit mode
+  - [ ] 14.8 Add keyboard navigation instructions to help panel
   - [ ]* 14.9 Test with screen reader (NVDA or JAWS)
   - [ ]* 14.10 Write accessibility audit report
   - **Acceptance**: WHEN Tab THEN focus cycles through layers; WHEN focused THEN visible focus indicator; WHEN selection changes THEN screen reader announces "X layers selected"; WHEN modal opens THEN focus trapped; WHEN interactive control THEN aria-label present; WHEN Enter on focused layer THEN selected; WHEN Space on focused text THEN inline edit mode
@@ -215,14 +215,14 @@
   - _Requirements: 17.1-17.10; Dependencies: Task 1; Estimated effort: 4 hours_
 
 - [ ] 15. Integration and Polish
-  - [~] 15.1 Integrate all new hooks and components into CreativeStudio.tsx
-  - [~] 15.2 Update PropertiesPanel to show multi-selection properties ("mixed" for differing values)
-  - [~] 15.3 Add feature flags for gradual rollout (grid, rulers, advanced shortcuts)
-  - [~] 15.4 Polish transitions: fade toasts, smooth menu animations
-  - [~] 15.5 Ensure consistent keyboard shortcut behavior across all contexts
-  - [~] 15.6 Add loading states for async operations (paste large groups)
-  - [~] 15.7 Polish error handling: user-friendly messages for all edge cases
-  - [~] 15.8 Update user documentation with new features and shortcuts
+  - [ ] 15.1 Integrate all new hooks and components into CreativeStudio.tsx
+  - [ ] 15.2 Update PropertiesPanel to show multi-selection properties ("mixed" for differing values)
+  - [ ] 15.3 Add feature flags for gradual rollout (grid, rulers, advanced shortcuts)
+  - [ ] 15.4 Polish transitions: fade toasts, smooth menu animations
+  - [ ] 15.5 Ensure consistent keyboard shortcut behavior across all contexts
+  - [ ] 15.6 Add loading states for async operations (paste large groups)
+  - [ ] 15.7 Polish error handling: user-friendly messages for all edge cases
+  - [ ] 15.8 Update user documentation with new features and shortcuts
   - [ ]* 15.9 Perform end-to-end testing with realistic design workflow
   - [ ]* 15.10 Create demo video showing all new features
   - **Acceptance**: WHEN multi-selection active THEN PropertiesPanel shows common properties; WHEN properties differ THEN "mixed" indicator; WHEN feature flag disabled THEN feature hidden; WHEN toast appears THEN smooth fade-in; WHEN context menu opens THEN smooth slide-in; WHEN error occurs THEN user-friendly message; WHEN all integrated THEN no console errors; WHEN realistic workflow tested THEN all operations work smoothly

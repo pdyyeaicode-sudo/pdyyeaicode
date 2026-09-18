@@ -6,7 +6,7 @@ import logging
 import os
 from functools import lru_cache
 from html import escape
-from typing import Any, Final
+from typing import Any, Final, Optional
 from uuid import uuid4
 
 from PIL import Image as PILImage
@@ -45,6 +45,9 @@ PROCESSING_MAX_DIMENSION: Final[int] = 800
 TEXT_MASK_PADDING_PX: Final[int] = 3
 SAM_MIN_AREA_PIXELS: Final[int] = 500
 SAM_MAX_DECORATION_MASKS: Final[int] = 7
+FASTSAM_MAX_MASKS: Final[int] = 7
+FASTSAM_MODEL_PATH: Final[str] = os.getenv("FASTSAM_MODEL_PATH", "FastSAM-s.pt")
+FASTSAM_DEVICE: Final[str] = os.getenv("FASTSAM_DEVICE", "cpu")
 
 
 logger = logging.getLogger("printrocket.svg.image_to_layers")
@@ -144,11 +147,13 @@ def image_to_svg_layers(image_bytes: bytes, mime_type: str) -> DesignOutput:
 
 
 def smart_image_to_layers(image_bytes: bytes, mime_type: str = "image/png") -> DesignOutput:
-    try:
-        return _extract_upload_layers(image_bytes, mime_type)
-    except Exception as exc:
-        logger.warning("3-stage upload extraction failed. Falling back to overlay-edit mode. Error: %s", exc)
-        return image_to_svg_layers(image_bytes, mime_type)
+    """Extract editable upload layers with Dreamer's FastSAM pipeline.
+
+    A failed segmentation must be reported to the caller. Returning one flattened
+    image here makes a failed extraction look successful and prevents the editor
+    from telling the user what actually needs attention.
+    """
+    return _extract_upload_layers(image_bytes, mime_type)
 
 
 @lru_cache(maxsize=1)
@@ -191,7 +196,7 @@ def _extract_upload_layers(image_bytes: bytes, mime_type: str) -> DesignOutput:
     master_erase_mask = cv2.dilate(master_erase_mask, np.ones((3, 3), np.uint8), iterations=1)
     clean_bg_rgb = cv2.inpaint(img_rgb, master_erase_mask, 3, cv2.INPAINT_TELEA)
     clean_bg_rgba = PILImage.fromarray(cv2.cvtColor(clean_bg_rgb, cv2.COLOR_RGB2RGBA), mode="RGBA")
-    background_inner_markup, background_image_url, shapes_inner_markup = _extract_sam_background_layers(
+    background_inner_markup, background_image_url, shapes_inner_markup = _extract_fastsam_background_layers(
         inpainted_background_rgba=clean_bg_rgba,
         original_image_rgba=original_rgba_array,
         exclusion_mask=master_erase_mask,
@@ -322,24 +327,42 @@ def _extract_subject_layer(
 
 
 @lru_cache(maxsize=1)
-def _get_sam_generator() -> Any:
-    from transformers import pipeline
+def _get_fastsam_model() -> Any:
+    from ultralytics import FastSAM
 
-    logger.info("Loading SAM mask-generation pipeline on CPU")
-    return pipeline("mask-generation", model="facebook/sam-vit-base", device=-1)
+    logger.info("Loading Dreamer FastSAM model from %s on %s.", FASTSAM_MODEL_PATH, FASTSAM_DEVICE)
+    return FastSAM(FASTSAM_MODEL_PATH)
 
 
-def _extract_sam_background_layers(
+def _extract_fastsam_background_layers(
     inpainted_background_rgba: PILImage.Image,
     original_image_rgba: Any,
     exclusion_mask: Any,
     np_module: Any,
 ) -> tuple[str, str, str]:
-    generator = _get_sam_generator()
-    raw_masks = generator(inpainted_background_rgba)
-    mask_entries = _normalize_sam_pipeline_output(raw_masks, np_module)
-    if not mask_entries:
-        raise ValueError("SAM did not return any masks.")
+    model = _get_fastsam_model()
+    results = model.predict(
+        inpainted_background_rgba,
+        device=FASTSAM_DEVICE,
+        retina_masks=True,
+        verbose=False,
+    )
+    try:
+        mask_entries = _normalize_fastsam_masks(results, np_module)
+    except ValueError:
+        # A valid image can have no meaningful decorative region (for example a
+        # plain product shot). Keep the real foreground/OCR layers produced by
+        # Dreamer and use the inpainted canvas as its background; never replace
+        # the whole result with the original flattened upload.
+        logger.info("FastSAM found no decorative masks; retaining the extracted foreground and text layers.")
+        width, height = inpainted_background_rgba.size
+        background_image_url = _png_data_uri(_image_to_png_bytes(inpainted_background_rgba))
+        background_inner_markup = (
+            f'<image href="{escape(background_image_url, quote=True)}" x="0" y="0" '
+            f'width="{_format_number(_snap(float(width)))}" height="{_format_number(_snap(float(height)))}" '
+            'preserveAspectRatio="xMidYMid slice"/>'
+        )
+        return background_inner_markup, background_image_url, ""
 
     sorted_entries = sorted(mask_entries, key=lambda entry: entry["area"], reverse=True)
     background_entry = sorted_entries[0]
@@ -643,7 +666,7 @@ def _select_sam_masks(mask_entries: list[dict[str, Any]], image_area: int, np_mo
         if any(_mask_iou(mask_entry["mask"], selected["mask"], np_module) > 0.9 for selected in selected_masks):
             continue
         selected_masks.append(mask_entry)
-        if len(selected_masks) >= SAM_MAX_MASKS:
+        if len(selected_masks) >= FASTSAM_MAX_MASKS:
             break
     return selected_masks
 
@@ -669,7 +692,12 @@ def _build_background_mask_markup(image_rgba: PILImage.Image, mask: Any, width: 
     )
 
 
-def _build_masked_object_markup(image_rgba: PILImage.Image, mask: Any, index: int, np_module: Any) -> str | None:
+def _build_masked_object_markup(
+    image_rgba: PILImage.Image,
+    mask: Any,
+    index: int,
+    np_module: Any,
+) -> Optional[str]:
     coordinates = np_module.argwhere(mask)
     if coordinates.size == 0:
         return None

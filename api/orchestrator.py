@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Awaitable, TypeVar
+from typing import Any, Awaitable, Optional, TypeVar
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 
 from services.layout import plan
 from services.realizer import realize
-from services.svg import compose_svg, image_to_svg_layers
+from services.svg import compose_svg
 from shared.models import DesignOutput, DesignRequest, DesignSpec, LayoutPlannerOutput, LayoutTree, RealizedBlueprint
 
 
@@ -65,7 +65,7 @@ def _log_stage(
     stage: str,
     duration_ms: float,
     status: str,
-    error: str | None = None,
+    error: Optional[str] = None,
 ) -> None:
     payload: dict[str, Any] = {
         "requestId": request_id,
@@ -126,7 +126,7 @@ async def _realize_visuals(layout_tree: LayoutTree, spec: DesignSpec) -> DesignO
 
 
 async def _build_uploaded_image_output(file: UploadFile) -> DesignOutput:
-    content_type: str | None = file.content_type
+    content_type: Optional[str] = file.content_type
     if not content_type or not content_type.startswith("image/"):
         raise HTTPException(status_code=415, detail="Unsupported image type. Use PNG, JPEG, or any valid image file.")
 
@@ -146,7 +146,7 @@ async def _build_uploaded_image_output(file: UploadFile) -> DesignOutput:
     try:
         from services.svg.image_to_layers import smart_image_to_layers
 
-        design_output = smart_image_to_layers(image_bytes)
+        design_output = smart_image_to_layers(image_bytes, content_type)
         logger.info(
             {
                 "requestId": design_output.requestId,
@@ -159,25 +159,12 @@ async def _build_uploaded_image_output(file: UploadFile) -> DesignOutput:
         return design_output
     except HTTPException:
         raise
-    except Exception as smart_exc:
-        logger.warning("Smart image layering failed. Falling back to fixed upload layering. Error: %s", smart_exc)
-        try:
-            design_output = image_to_svg_layers(image_bytes, content_type)
-            logger.info(
-                {
-                    "requestId": design_output.requestId,
-                    "stage": "upload-image",
-                    "durationMs": 0.0,
-                    "status": "success",
-                    "path": "image_to_svg_layers",
-                }
-            )
-            return design_output
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.exception("Failed to convert uploaded image into SVG layers.")
-            raise HTTPException(status_code=400, detail="Unable to process the uploaded image.") from exc
+    except Exception as exc:
+        logger.exception("Dreamer FastSAM layer extraction failed.")
+        raise HTTPException(
+            status_code=500,
+            detail="Dreamer could not separate this image into editable layers. Please try another image.",
+        ) from exc
 
 
 @app.post("/generate-design", response_model=DesignOutput)
@@ -226,12 +213,12 @@ from datetime import datetime
 class FeedbackEvent(BaseModel):
     requestId: str
     eventType: FeedbackEventType
-    elementId: str | None = None
-    field: str | None = None
-    oldValue: str | None = None
-    newValue: str | None = None
-    rating: int | None = None
-    printOutcome: PrintOutcome | None = None
+    elementId: Optional[str] = None
+    field: Optional[str] = None
+    oldValue: Optional[str] = None
+    newValue: Optional[str] = None
+    rating: Optional[int] = None
+    printOutcome: Optional[PrintOutcome] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 @app.post("/api/feedback")

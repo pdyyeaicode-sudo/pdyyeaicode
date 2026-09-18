@@ -16,6 +16,8 @@ export interface DrawingState {
   startY: number;
   currentX: number;
   currentY: number;
+  shiftKey: boolean;
+  altKey: boolean;
 }
 
 export interface DrawnShape {
@@ -33,6 +35,16 @@ export interface UseShapeDrawingProps {
   containerRef: React.RefObject<HTMLElement>;
   onDrawingStateChange?: (isDrawing: boolean) => void; // NEW: Notify parent about drawing state
   constrainProportions?: boolean; // NEW: Force perfect squares/circles when true
+}
+
+/** Canvas tools must never claim a pointer that belongs to a text-edit workflow. */
+function isEditingField(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return target.closest(
+    "input, textarea, select, [contenteditable='true'], [role='textbox'], text[data-element-id]",
+  ) !== null;
 }
 
 /**
@@ -54,16 +66,19 @@ export function useShapeDrawing({
     startY: 0,
     currentX: 0,
     currentY: 0,
+    shiftKey: false,
+    altKey: false,
   });
   
   const isDrawingRef = useRef<boolean>(false);
   const pointerIdRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const pendingUpdateRef = useRef<{ x: number; y: number; shiftKey: boolean } | null>(null);
+  const pendingUpdateRef = useRef<{ x: number; y: number; shiftKey: boolean; altKey: boolean } | null>(null);
   const shiftKeyRef = useRef<boolean>(false);
   
   const handlePointerDown = useCallback((e: PointerEvent) => {
     if (!enabled || !shapeType || !containerRef.current) return;
+    if (isEditingField(e.target)) return;
     
     // Only start drawing on left click
     if (e.button !== 0) return;
@@ -95,6 +110,8 @@ export function useShapeDrawing({
       startY: y,
       currentX: x,
       currentY: y,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
     });
     
     // Notify parent that drawing started (to lock viewport)
@@ -102,7 +119,7 @@ export function useShapeDrawing({
       onDrawingStateChange(true);
     }
     
-    console.log('[useShapeDrawing] Drawing started at:', { x, y });
+    // Drawing started
   }, [enabled, shapeType, containerRef, onDrawingStateChange]);
   
   const handlePointerMove = useCallback((e: PointerEvent) => {
@@ -115,20 +132,11 @@ export function useShapeDrawing({
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
     
-    // Store shift key state
+    // Store key states
     shiftKeyRef.current = e.shiftKey;
     
-    // If Shift is held, constrain to perfect square/circle
-    if (e.shiftKey && (shapeType === "rectangle" || shapeType === "circle" || shapeType === "ellipse")) {
-      const dx = x - drawingState.startX;
-      const dy = y - drawingState.startY;
-      const size = Math.max(Math.abs(dx), Math.abs(dy));
-      x = drawingState.startX + (dx >= 0 ? size : -size);
-      y = drawingState.startY + (dy >= 0 ? size : -size);
-    }
-    
     // Use requestAnimationFrame to throttle updates and prevent flickering
-    pendingUpdateRef.current = { x, y, shiftKey: e.shiftKey };
+    pendingUpdateRef.current = { x, y, shiftKey: e.shiftKey, altKey: e.altKey };
     
     if (animationFrameRef.current === null) {
       animationFrameRef.current = requestAnimationFrame(() => {
@@ -138,6 +146,8 @@ export function useShapeDrawing({
             ...prev,
             currentX: pending.x,
             currentY: pending.y,
+            shiftKey: pending.shiftKey,
+            altKey: pending.altKey,
           }));
         }
         animationFrameRef.current = null;
@@ -168,16 +178,32 @@ export function useShapeDrawing({
     const endX = e.clientX - rect.left;
     const endY = e.clientY - rect.top;
     
-    // Preserve exact user coordinates - no normalization
-    const width = endX - drawingState.startX;
-    const height = endY - drawingState.startY;
-    const x = drawingState.startX;
-    const y = drawingState.startY;
+    let dx = endX - drawingState.startX;
+    let dy = endY - drawingState.startY;
     
-    console.log('[useShapeDrawing] Drawing finished:', { x, y, width, height });
+    if (drawingState.shiftKey && (drawingState.shapeType === "rectangle" || drawingState.shapeType === "circle" || drawingState.shapeType === "ellipse")) {
+      const size = Math.max(Math.abs(dx), Math.abs(dy));
+      dx = dx >= 0 ? size : -size;
+      dy = dy >= 0 ? size : -size;
+    }
     
-    // Only create shape if it has meaningful size (>5px in either dimension)
-    if ((Math.abs(width) > 5 || Math.abs(height) > 5) && drawingState.shapeType) {
+    let x, y, width, height;
+    if (drawingState.altKey) {
+      width = dx >= 0 ? Math.abs(dx) * 2 : -Math.abs(dx) * 2;
+      height = dy >= 0 ? Math.abs(dy) * 2 : -Math.abs(dy) * 2;
+      x = drawingState.startX - dx;
+      y = drawingState.startY - dy;
+    } else {
+      x = drawingState.startX;
+      y = drawingState.startY;
+      width = dx;
+      height = dy;
+    }
+    
+    // Drawing finished
+    
+    // Only create shape if we have a shape type
+    if (drawingState.shapeType) {
       onShapeDrawn({
         type: drawingState.shapeType,
         x,
@@ -196,6 +222,8 @@ export function useShapeDrawing({
       startY: 0,
       currentX: 0,
       currentY: 0,
+      shiftKey: false,
+      altKey: false,
     });
     
     // Notify parent that drawing ended (to unlock viewport)
@@ -208,7 +236,7 @@ export function useShapeDrawing({
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-  }, [drawingState.startX, drawingState.startY, drawingState.shapeType, onShapeDrawn, containerRef, onDrawingStateChange]);
+  }, [drawingState, onShapeDrawn, containerRef, onDrawingStateChange]);
   
   // Attach event listeners
   useEffect(() => {
@@ -250,25 +278,42 @@ export function useShapeDrawing({
 export function getShapePreviewPath(state: DrawingState): string {
   if (!state.isDrawing || !state.shapeType) return "";
   
-  // Preserve exact coordinates - no Math.min/max normalization
   const startX = state.startX;
   const startY = state.startY;
-  const endX = state.currentX;
-  const endY = state.currentY;
-  const width = endX - startX;
-  const height = endY - startY;
+  let dx = state.currentX - startX;
+  let dy = state.currentY - startY;
+  
+  if (state.shiftKey && (state.shapeType === "rectangle" || state.shapeType === "circle" || state.shapeType === "ellipse")) {
+    const size = Math.max(Math.abs(dx), Math.abs(dy));
+    dx = dx >= 0 ? size : -size;
+    dy = dy >= 0 ? size : -size;
+  }
+  
+  let x, y, width, height;
+  if (state.altKey) {
+    width = dx >= 0 ? Math.abs(dx) * 2 : -Math.abs(dx) * 2;
+    height = dy >= 0 ? Math.abs(dy) * 2 : -Math.abs(dy) * 2;
+    x = startX - dx;
+    y = startY - dy;
+  } else {
+    x = startX;
+    y = startY;
+    width = dx;
+    height = dy;
+  }
   
   switch (state.shapeType) {
-    case "rectangle": {
+    case "rectangle":
+    case "custom": {
       // Draw rectangle from start to end, preserving direction
-      return `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY} L ${startX} ${endY} Z`;
+      return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
     }
     
     case "circle":
     case "ellipse": {
       // Draw ellipse with exact user proportions
-      const cx = startX + width / 2;
-      const cy = startY + height / 2;
+      const cx = x + width / 2;
+      const cy = y + height / 2;
       const rx = Math.abs(width / 2);
       const ry = Math.abs(height / 2);
       
@@ -280,13 +325,13 @@ export function getShapePreviewPath(state: DrawingState): string {
     
     case "line": {
       // Draw line from exact start to exact end
-      return `M ${startX} ${startY} L ${endX} ${endY}`;
+      return `M ${x} ${y} L ${x + width} ${y + height}`;
     }
     
     case "triangle": {
       // Draw triangle preserving user's drag direction and proportions
-      const midX = startX + width / 2;
-      return `M ${midX} ${startY} L ${endX} ${endY} L ${startX} ${endY} Z`;
+      const midX = x + width / 2;
+      return `M ${midX} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
     }
     
     case "rounded-rect":
@@ -303,7 +348,7 @@ export function getShapePreviewPath(state: DrawingState): string {
     case "banner":
     case "badge":
     case "shield": {
-      return generateShapePath(state.shapeType, startX, startY, width, height);
+      return generateShapePath(state.shapeType, x, y, width, height);
     }
     
     default:

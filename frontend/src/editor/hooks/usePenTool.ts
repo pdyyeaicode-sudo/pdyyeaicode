@@ -3,6 +3,7 @@ import {
   createPenSession, 
   addAnchor, 
   isOnFirstAnchor, 
+  updateLastAnchorHandles,
   close, 
   finalize, 
   previewPathData,
@@ -14,6 +15,7 @@ import {
 export interface PenToolState {
   isDrawing: boolean;
   previewData: string;
+  anchors: readonly PenAnchor[];
 }
 
 export interface UsePenToolProps {
@@ -33,6 +35,13 @@ export function usePenTool({
 }: UsePenToolProps): PenToolState {
   const [session, setSession] = useState<PenSession>(createPenSession());
   const [liveCursor, setLiveCursor] = useState<PenAnchor | null>(null);
+  
+  const isDraggingRef = useRef(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
+  const setDragging = useCallback((val: boolean) => {
+    isDraggingRef.current = val;
+    setIsDraggingState(val);
+  }, []);
 
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
@@ -48,8 +57,9 @@ export function usePenTool({
     if (!enabled) {
       setSession(createPenSession());
       setLiveCursor(null);
+      setDragging(false);
     }
-  }, [enabled]);
+  }, [enabled, setDragging]);
 
   const handlePointerDown = useCallback((e: PointerEvent) => {
     if (!enabledRef.current || !containerRef.current) return;
@@ -72,11 +82,13 @@ export function usePenTool({
       if (isOnFirstAnchor(currentSession, point)) {
         const completion = close(currentSession, { existingLayerIds: [] });
         onPenPathCompleted(completion);
+        setDragging(false);
         return createPenSession();
       }
+      setDragging(true);
       return addAnchor(currentSession, point);
     });
-  }, [containerRef, viewport, onPenPathCompleted]);
+  }, [containerRef, viewport, onPenPathCompleted, setDragging]);
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!enabledRef.current || !containerRef.current || session.anchors.length === 0) {
@@ -93,15 +105,25 @@ export function usePenTool({
 
     const modelX = (x - viewport.panX) / viewport.zoom;
     const modelY = (y - viewport.panY) / viewport.zoom;
-    
-    // Snap to the first anchor if close enough
     const point = { x: modelX, y: modelY };
-    if (isOnFirstAnchor(session, point)) {
-      setLiveCursor(session.anchors[0]);
+
+    if (isDraggingRef.current) {
+      setSession((currentSession) => updateLastAnchorHandles(currentSession, point));
+      setLiveCursor(null);
     } else {
-      setLiveCursor(point);
+      // Snap to the first anchor if close enough
+      if (isOnFirstAnchor(session, point)) {
+        setLiveCursor(session.anchors[0]);
+      } else {
+        setLiveCursor(point);
+      }
     }
   }, [containerRef, session, viewport]);
+
+  const handlePointerUp = useCallback((e: PointerEvent) => {
+    if (!enabledRef.current) return;
+    setDragging(false);
+  }, [setDragging]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!enabledRef.current || session.anchors.length === 0) return;
@@ -124,23 +146,22 @@ export function usePenTool({
     if (container) {
       container.addEventListener("pointerdown", handlePointerDown);
       window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
       window.addEventListener("keydown", handleKeyDown);
       return () => {
         container.removeEventListener("pointerdown", handlePointerDown);
         window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
         window.removeEventListener("keydown", handleKeyDown);
       };
     }
-  }, [enabled, containerRef, handlePointerDown, handlePointerMove, handleKeyDown]);
+  }, [enabled, containerRef, handlePointerDown, handlePointerMove, handlePointerUp, handleKeyDown]);
 
-  let previewData = previewPathData(session);
-  if (session.anchors.length > 0 && liveCursor) {
-    const nextSegment = session.anchors.length === 1 ? `L ${liveCursor.x} ${liveCursor.y}` : `L ${liveCursor.x} ${liveCursor.y}`;
-    previewData = previewData ? `${previewData} ${nextSegment}` : `M ${liveCursor.x} ${liveCursor.y}`;
-  }
+  const previewData = previewPathData(session, !isDraggingRef.current && liveCursor ? liveCursor : undefined);
 
   return {
     isDrawing: session.anchors.length > 0,
-    previewData
+    previewData,
+    anchors: session.anchors,
   };
 }

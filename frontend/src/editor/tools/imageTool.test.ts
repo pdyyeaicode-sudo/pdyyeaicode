@@ -67,7 +67,7 @@ describe("validateImageFile (Req 7.3)", () => {
     }
   });
 
-  it("accepts a file exactly at the 10MB boundary", () => {
+  it("accepts a file exactly at the configured upload boundary", () => {
     const result = validateImageFile(fakeFile("photo.png", "image/png", IMAGE_MAX_BYTES));
     expect(result.ok).toBe(true);
   });
@@ -81,14 +81,14 @@ describe("validateImageFile (Req 7.3)", () => {
     }
   });
 
-  it("rejects supported types that exceed 10MB with a size-specific reason", () => {
+  it("rejects supported types that exceed the configured limit with a size-specific reason", () => {
     const result = validateImageFile(
       fakeFile("big.png", "image/png", IMAGE_MAX_BYTES + 1),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.reason).toBe("size");
-      expect(result.message).toMatch(/10MB|large/i);
+      expect(result.message).toMatch(/1TB|large/i);
     }
   });
 

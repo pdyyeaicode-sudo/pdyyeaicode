@@ -277,6 +277,14 @@ export function fitGeometryToBox(geometry: ShapeGeometry, prevBox: BBox, nextBox
         ...geometry,
         points: geometry.points.map(([px, py]) => [mapX(px), mapY(py)] as [number, number]),
       };
+    case "parametric":
+      return {
+        ...geometry,
+        x: nextBox.x,
+        y: nextBox.y,
+        width: nextBox.width,
+        height: nextBox.height,
+      };
     case "path":
     default:
       return { ...geometry, d: scalePathData(geometry.d, prevBox, nextBox) };

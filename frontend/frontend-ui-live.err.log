@@ -1,5 +1,4 @@
-[2m8:29:24 pm[22m [31m[1m[vite][22m[39m [31mInternal server error: H:\Sratup projects\Dreamer\frontend\src\components\SVGCanvas.tsx: 'return' outside of function. (102:6)
-
+okoook continue wire eveything
 [0m [90m 100 |[31m     [36mconst[31m svgRoot [33m=[31m container[33m.[31mquerySelector([32m"svg"[31m)[33m;[31m
  [90m 101 |[31m     [36mif[31m ([33m![31m(svgRoot [36minstanceof[31m [33mSVGSVGElement[31m)) {
 [31m[1m>[22m[31m[90m 102 |[31m       [36mreturn[31m undefined[33m;[31m

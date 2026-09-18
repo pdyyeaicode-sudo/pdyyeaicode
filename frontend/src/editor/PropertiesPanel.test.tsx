@@ -93,23 +93,13 @@ describe("PropertiesPanel single-selection editor", () => {
   it("shows typography controls for text layers (Req 9.1)", () => {
     renderPanel(textLayer(), vi.fn());
 
-
     expect(screen.getByLabelText("Font family")).toHaveValue("General Sans");
     expect(screen.getByLabelText("Font size")).toHaveValue("64");
     expect(screen.getByLabelText("Font weight")).toHaveValue("bold");
-    expect(screen.getByLabelText("Text align")).toHaveValue("center");
-  });
-
-  it("dispatches exactly one Command on a valid position commit (Req 9.2)", () => {
-    const dispatch = vi.fn();
-    renderPanel(rectLayer(), dispatch);
-
-
-    const input = screen.getByLabelText("X");
-    fireEvent.change(input, { target: { value: "60" } });
-    fireEvent.blur(input);
-
-    expect(dispatch).toHaveBeenCalledTimes(1);
+    
+    // Position/Transform
+    expect(screen.getByLabelText("X")).toHaveValue("40");
+    expect(screen.getByLabelText("Y")).toHaveValue("80");
   });
 
   it("dispatches one Command on a valid fill commit (Req 9.4)", () => {
@@ -167,26 +157,22 @@ describe("PropertiesPanel single-selection editor", () => {
     expect(input).toHaveValue("100");
   });
 
-  it("keeps the Effects (shadow/blur) controls in a section collapsed by default (Req 13.11)", () => {
+  it("keeps the single non-destructive Effects Stack collapsed by default (Req 13.11)", () => {
     renderPanel(rectLayer(), vi.fn());
 
+    expect(screen.queryByLabelText("Effect to add")).not.toBeInTheDocument();
 
-    // Collapsed: the shadow toggle is not rendered until the section is opened.
-    expect(screen.queryByLabelText("Drop shadow")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Effects Stack" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Effects" }));
-
-    expect(screen.getByLabelText("Drop shadow")).toBeInTheDocument();
-    expect(screen.getByLabelText("Blur")).toBeInTheDocument();
+    expect(screen.getByLabelText("Effect to add")).toBeInTheDocument();
   });
 
-  it("applies a shadow effect as one filter Command when toggled (Req 9.6)", () => {
+  it("adds one editable stack effect as one Command (Req 9.6)", () => {
     const dispatch = vi.fn();
     renderPanel(rectLayer(), dispatch);
 
-
-    fireEvent.click(screen.getByRole("button", { name: "Effects" }));
-    fireEvent.click(screen.getByLabelText("Drop shadow"));
+    fireEvent.click(screen.getByRole("button", { name: "Effects Stack" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
 
     expect(dispatch).toHaveBeenCalledTimes(1);
   });

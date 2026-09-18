@@ -115,6 +115,20 @@ export interface TextLayer extends BaseLayer {
   fontStyle?: "normal" | "italic";
   textDecoration?: "none" | "underline" | "line-through";
   textAlign: "left" | "center" | "right";
+  /** Absolute line advance in document pixels; omitted uses the font default. */
+  lineHeight?: number;
+  /** Additional tracking in document pixels. */
+  letterSpacing?: number;
+  /** Additional spacing between words in document pixels. */
+  wordSpacing?: number;
+  /** Vertical glyph offset in document pixels. */
+  baselineShift?: number;
+  /** Semantic case treatment without mutating the stored text content. */
+  textTransform?: "none" | "uppercase" | "lowercase" | "capitalize";
+  /** Paragraph direction for mixed and right-to-left text. */
+  direction?: "ltr" | "rtl";
+  /** Horizontal or vertical SVG writing mode. */
+  writingMode?: "horizontal-tb" | "vertical-rl" | "vertical-lr";
   fill: string;
 }
 
@@ -141,7 +155,8 @@ export type ShapeGeometry =
   | { type: "ellipse"; cx: number; cy: number; rx: number; ry: number }
   | { type: "line"; x1: number; y1: number; x2: number; y2: number }
   | { type: "polygon"; points: Array<[number, number]> } // >= 3 vertices (Req 5.1)
-  | { type: "path"; d: string }; // >= 2 anchors (Req 8.2)
+  | { type: "path"; d: string } // >= 2 anchors (Req 8.2)
+  | { type: "parametric"; shapeType: string; x: number; y: number; width: number; height: number; parameters: Record<string, number | boolean | string> };
 
 // --- Document, pages, and artboards ---
 
@@ -200,7 +215,16 @@ export interface TransformSnapshot {
   transform?: string;
 }
 
-export type ResizeSnapshot = BoxSnapshot | GeometrySnapshot;
+/**
+ * What a resize gesture can change.
+ *
+ * `box` for image/text layers, `geometry` for shapes whose numbers can be
+ * rewritten exactly, and `transform` for the kinds that cannot — path data, whose
+ * elliptical arcs need radius and axis-rotation mapping, plus text and groups,
+ * which have no size field of their own. See `geometry/resizeGeometry.ts` for why
+ * an approximation is refused rather than guessed.
+ */
+export type ResizeSnapshot = BoxSnapshot | GeometrySnapshot | TransformSnapshot;
 export type RotateSnapshot = TransformSnapshot;
 
 export type ToolId = string;

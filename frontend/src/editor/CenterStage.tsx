@@ -45,7 +45,9 @@ export interface CenterStageProps {
   onLayerTextUpdate: (elementId: string, newText: string) => void;
   onLayerTransform: (layerId: string, dx: number, dy: number) => void;
   onResize?: (layerId: string, prevBox: BoxSnapshot, nextBox: BoxSnapshot) => void;
+  onResizeSnapshot?: (layerId: string, prev: any, next: any) => void;
   onRotate?: (layerId: string, prev: RotateSnapshot, next: RotateSnapshot) => void;
+  onTextPlacement?: (x: number, y: number) => void;
   onShapeDrawn?: (shapeType: ShapeType, x: number, y: number, width: number, height: number) => void;
   onPenPathCompleted?: (completion: PenCompletion) => void;
   onFreehandDrawn?: (pathString: string, bounds: { x: number, y: number, width: number, height: number }) => void;
@@ -81,7 +83,9 @@ export function CenterStage({
   onLayerTextUpdate,
   onLayerTransform,
   onResize,
+  onResizeSnapshot,
   onRotate,
+  onTextPlacement,
   onShapeDrawn,
   onPenPathCompleted,
   onFreehandDrawn,
@@ -103,6 +107,9 @@ export function CenterStage({
   // Track if we're currently drawing to lock viewport
   const [isDrawingShape, setIsDrawingShape] = useState<boolean>(false);
   
+  // Capture the engine's hit tester to disambiguate object drag from canvas pan
+  const engineHitTesterRef = useRef<((clientX: number, clientY: number) => string | null) | null>(null);
+
   const {
     viewport,
     zoomPercent,
@@ -113,7 +120,7 @@ export function CenterStage({
     zoomIn,
     zoomOut,
     reset,
-  } = useViewport(undefined, isHandToolActive);
+  } = useViewport(engineHitTesterRef, isHandToolActive);
   
   // Determine drawing mode from active tool - map ALL shape tools to ShapeType
   const [drawingShapeType, setDrawingShapeType] = useState<ShapeType | null>(null);
@@ -410,7 +417,11 @@ export function CenterStage({
               onClearSelection={selectionState.clear}
               onSetSelection={selectionState.setSelection}
               onResize={onResize}
+              onResizeSnapshot={onResizeSnapshot}
               onRotate={onRotate}
+              onHitTester={(tester) => {
+                engineHitTesterRef.current = tester;
+              }}
             />
             {isTextEditing && textEditorStyle && activeLayer && (
               <InlineTextEditor

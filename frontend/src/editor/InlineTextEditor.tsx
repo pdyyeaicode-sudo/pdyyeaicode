@@ -13,7 +13,8 @@
  * Behavior:
  *  - Pre-populates with the element's current content (Req 6.2). The caller is
  *    responsible for mounting it within 200ms of the double-click.
- *  - Commits on Enter or blur. A valid commit (>= 1 non-whitespace char, <= 500
+ *  - Commits on Ctrl/Cmd+Enter or blur. Enter inserts a new line so paragraph
+ *    text remains editable. A valid commit (>= 1 non-whitespace char, <= 500
  *    chars) calls `onCommit`; an empty/whitespace-only or over-length commit
  *    calls `onRejected` with a reason and a not-applied message so the editor
  *    can show a visible indication, and records no edit (Req 6.3, 6.4).
@@ -25,7 +26,7 @@
  * One responsibility per file: the inline text-edit input UI.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties, KeyboardEvent } from "react";
 
 import {
@@ -71,7 +72,7 @@ export function InlineTextEditor({
   style,
 }: InlineTextEditorProps): JSX.Element {
   const [value, setValue] = useState<string>(initialContent);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const committedRef = useRef<boolean>(false);
 
   // Throttle bookkeeping for the live preview (Req 6.7). Timing lives here in
@@ -79,8 +80,16 @@ export function InlineTextEditor({
   const lastPreviewAtRef = useRef<number>(0);
   const pendingPreviewRef = useRef<number | null>(null);
 
-  // Focus and select-all so the pre-populated content is immediately editable.
+  // A persistent stage can switch layers without unmounting the editor. Make
+  // each layer's edit session start from that layer's actual text and accept a
+  // new commit even after the previous session has finished.
   useEffect(() => {
+    setValue(initialContent);
+    committedRef.current = false;
+  }, [initialContent]);
+
+  // Focus and select-all so the pre-populated content is immediately editable.
+  useLayoutEffect(() => {
     const input = inputRef.current;
     if (input) {
       input.focus();
@@ -92,6 +101,15 @@ export function InlineTextEditor({
       }
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    input.style.height = "auto";
+    input.style.height = `${Math.max(input.scrollHeight, input.offsetHeight)}px`;
+  }, [value]);
 
   const emitPreview = useCallback(
     (next: string) => {
@@ -118,7 +136,7 @@ export function InlineTextEditor({
   );
 
   const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
       const next = event.target.value;
       setValue(next);
       emitPreview(next);
@@ -140,8 +158,12 @@ export function InlineTextEditor({
   }, [onCommit, onRejected, value]);
 
   const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === "Enter") {
+    (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      // Keep every editing keystroke inside the textarea. Canvas tools such as
+      // Pen and Frame register window-level shortcuts, which must not consume
+      // text input, spaces, Enter, or modifier combinations.
+      event.stopPropagation();
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         commit();
       } else if (event.key === "Escape") {
@@ -154,16 +176,22 @@ export function InlineTextEditor({
   );
 
   return (
-    <input
+    <textarea
       ref={inputRef}
-      type="text"
       value={value}
       maxLength={TEXT_CONTENT_MAX}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       onBlur={commit}
       aria-label="Edit text"
-      style={style}
+      style={{
+        ...style,
+        height: "auto",
+        minHeight: style?.height,
+        resize: "none",
+        overflow: "hidden",
+        whiteSpace: "pre-wrap",
+      }}
       onPointerDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
     />

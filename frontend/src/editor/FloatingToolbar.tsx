@@ -8,6 +8,7 @@
 import { Icon } from "./Icon";
 import styles from "./CreativeStudio.module.css";
 import type { ToolId } from "./types/documentModel";
+import { motion } from "framer-motion";
 
 export interface FloatingToolbarProps {
   activeTool: ToolId;
@@ -16,10 +17,13 @@ export interface FloatingToolbarProps {
 
 export function FloatingToolbar({ activeTool, onSelectTool }: FloatingToolbarProps): JSX.Element {
   return (
-    <div 
+    <motion.div 
       className={styles.floatingToolbar} 
       role="toolbar" 
       aria-label="Canvas tools"
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", damping: 20, stiffness: 300 }}
     >
       <button
         type="button"
@@ -55,6 +59,6 @@ export function FloatingToolbar({ activeTool, onSelectTool }: FloatingToolbarPro
       >
         <Icon name="pen" active={activeTool === "pen"} />
       </button>
-    </div>
+    </motion.div>
   );
 }

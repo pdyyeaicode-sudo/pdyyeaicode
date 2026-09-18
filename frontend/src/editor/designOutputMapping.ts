@@ -42,6 +42,40 @@ export function artboardFromDesignOutput(output: DesignOutput): Artboard {
 }
 
 /**
+ * The same artboard, parsed once per `DesignOutput`.
+ *
+ * Parsing the canonical SVG is the expensive step and several consumers need the
+ * document view of the same output — the render scene, and any gesture that has to
+ * read a layer's stored geometry to build a command. A `WeakMap` so a superseded
+ * output is collectable.
+ *
+ * Returns null when the markup cannot be parsed, so a caller reports rather than
+ * committing a change against a document it could not read.
+ */
+const artboardCache = new WeakMap<DesignOutput, Artboard>();
+
+export function artboardForDesignOutput(output: DesignOutput | null): Artboard | null {
+  if (output === null) {
+    return null;
+  }
+  const cached = artboardCache.get(output);
+  if (cached !== undefined) {
+    return cached;
+  }
+  try {
+    const artboard = artboardFromDesignOutput(output);
+    artboardCache.set(output, artboard);
+    return artboard;
+  } catch (error) {
+    console.warn(
+      "[editor] could not parse the design output into a document:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return null;
+  }
+}
+
+/**
  * Build a `DesignOutput`-shaped value from an `Artboard` for export/interchange.
  *
  * Serializes the canonical SVG and derives `svgLayers[]` exactly as the existing

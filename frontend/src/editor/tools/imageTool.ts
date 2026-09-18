@@ -2,7 +2,8 @@
  * imageTool — image placement for Creative Studio (v1).
  *
  * Responsibilities (Req 7.1–7.5):
- *  - Validate a selected `File`: accept PNG/JPEG/WEBP that is <= 10MB, otherwise
+ *  - Validate a selected `File`: accept PNG/JPEG/WEBP up to the configured
+ *    effective upload ceiling, otherwise
  *    reject with a reason-specific error distinguishing unsupported *type* from
  *    exceeded *size* (Req 7.3).
  *  - For a file within limits, read it to an inline `data:` URI with no network
@@ -27,8 +28,8 @@
 import { createLayerCommand } from "../commands";
 import type { Command, ImageLayer } from "../types/documentModel";
 
-/** Maximum accepted image size in bytes (10MB), per Req 7.1/7.3. */
-export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+/** Maximum accepted image size in bytes (1TB), per user request. */
+export const IMAGE_MAX_BYTES = 1000 * 1024 * 1024 * 1024;
 
 /** Accepted MIME types for image placement, per Req 7.1/7.3. */
 export const ACCEPTED_IMAGE_TYPES = [
@@ -74,7 +75,7 @@ export function validateImageFile(file: File): ImageValidationResult {
     return {
       ok: false,
       reason: "size",
-      message: `File is too large (${formatBytes(file.size)}). The maximum image size is 10MB.`,
+      message: `File is too large (${formatBytes(file.size)}). The maximum image size is 1TB.`,
     };
   }
   return { ok: true };

@@ -11,6 +11,8 @@ import "@astryxdesign/theme-neutral/theme.css";
 import App from "./App";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
+import { ReactLenis } from 'lenis/react';
+
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
@@ -27,7 +29,9 @@ createRoot(rootElement).render(
     <AppErrorBoundary>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
         <Theme theme={neutralTheme}>
-          <App isAuthenticationConfigured={true} />
+          <ReactLenis root options={{ lerp: 0.1, duration: 1.5, smoothWheel: true }}>
+            <App isAuthenticationConfigured={true} />
+          </ReactLenis>
         </Theme>
       </ClerkProvider>
     </AppErrorBoundary>

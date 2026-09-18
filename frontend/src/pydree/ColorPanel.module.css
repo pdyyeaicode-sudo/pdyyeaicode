@@ -166,6 +166,7 @@
 .stopItem {
   width: 20px;
   height: 20px;
+  padding: 0;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
@@ -230,6 +231,8 @@
 }
 .swatch {
   aspect-ratio: 1;
+  appearance: none;
+  padding: 0;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
@@ -239,6 +242,11 @@
 .swatch:hover {
   transform: scale(1.1);
   border-color: rgba(255, 255, 255, 0.3);
+}
+.swatch:focus-visible,
+.stopItem:focus-visible {
+  outline: 2px solid var(--p-accent);
+  outline-offset: 2px;
 }
 
 .subTitle {
@@ -263,10 +271,21 @@
   background: var(--p-bg-3);
   color: var(--p-fg-0);
 }
+.harmonyBtnActive {
+  background: var(--p-accent-soft);
+  border-color: var(--p-accent);
+  color: var(--p-accent-hi);
+}
 .harmonyRow {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  padding: 0 16px 8px;
+}
+.harmonySwatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   padding: 0 16px 16px;
 }
 

@@ -6,7 +6,26 @@
 ## ⚙️ UNIVERSAL RULES (ALL AGENTS — NO EXCEPTIONS)
 
 ```
-1. NEVER rewrite working code. Extend only. If a file exists, patch it.
+1.  Do NOT change the UI of the editor — layout, skeleton, visual language and
+    existing controls stay as they are. Behaviour behind them may change, and new
+    affordances may be added only where they surface engine output.
+2.  frontend/src/pydree/PydreeStudio.tsx is UNLOCKED and editable (owner decision,
+    this session). The previous "never modify" rule is withdrawn. Rule 1 still
+    applies to it: change its wiring and logic, not its visual design.
+3.  NEVER rewrite working code. Extend only. If a file exists, patch it.
+4.  NEVER add a dependency without stating: name, version, exact reason.
+5.  NEVER use placeholder logic (pass, TODO, mock data) in any deliverable.
+6.  ALWAYS type everything. Python: mypy-strict. TypeScript: strict mode.
+7.  ALWAYS write stateless functions/services. No hidden global state.
+8.  IF uncertain about a library, model or math — STOP and ask. Do not guess.
+9.  ONE responsibility per file.
+10. All APIs use OpenAPI schema. All internal data uses typed Pydantic models.
+11. Error handling is not optional. Every I/O operation has try/except + logging.
+12. NO SILENT FALLBACKS. Every fallback is logged with a reason. A value that
+    could not be computed is reported, never substituted with a plausible one.
+13. Geometry has ONE source of truth: RenderScene.worldTransform. Nothing may
+    measure the DOM to decide where an object is. See engine/CONTEXT.md.
+    1. NEVER rewrite working code. Extend only. If a file exists, patch it.
 2. NEVER add a dependency without stating: name, version, exact reason.
 3. NEVER output full files. Use // ...existing code... for unchanged blocks.
 4. NEVER use placeholder logic (pass, TODO, mock data) in any deliverable.

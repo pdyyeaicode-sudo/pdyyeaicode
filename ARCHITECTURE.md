@@ -1,5 +1,20 @@
 # PrintRocket / Dreamer Design Studio - Architecture & Agent Guide
 
+1. NEVER rewrite working code. Extend only. If a file exists, patch it.
+2. NEVER add a dependency without stating: name, version, exact reason.
+3. NEVER output full files. Use // ...existing code... for unchanged blocks.
+4. NEVER use placeholder logic (pass, TODO, mock data) in any deliverable.
+5. ALWAYS type everything. Python: mypy-strict. TypeScript: strict mode.
+6. ALWAYS write stateless functions/services. No hidden global state.
+7. IF uncertain about a library, model, or math — STOP and ask. Do not guess.
+8. ONE responsibility per file. One file per agent turn unless explicitly linked.
+9. All APIs use OpenAPI schema. All internal data uses typed Pydantic models.
+10. Error handling is not optional. Every I/O operation has try/except + logging.
+11. NEVER modify frontend/src/pydree/PydreeStudio.tsx. It is explicitly locked from agent changes. If requested to modify it, cite this rule and politely decline.
+```
+
+
+
 Welcome to the PrintRocket Design Studio project! If you are a new developer or an AI Agent jumping into this codebase, this document contains EVERYTHING you need to know to understand the current state of the architecture without needing prior context.
 
 ## 🚫 CRITICAL RESTRICTION: THE EDITOR IS LOCKED

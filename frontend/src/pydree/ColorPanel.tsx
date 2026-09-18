@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import styles from "./ColorPanel.module.css";
 import type { UseCreativeStudioResult } from "../editor/useCreativeStudio";
-import { Pipette, Sparkles, Layers, SlidersHorizontal, Sun, Contrast } from "lucide-react";
+import type { DocumentLayer } from "../editor/types/documentModel";
+import { Pipette } from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ToggleButton, ToggleButtonGroup } from "@astryxdesign/core/ToggleButton";
 import { setPropertyCommand } from "../editor/commands/setPropertyCommand";
@@ -40,6 +41,68 @@ function isHexColor(value: string): boolean {
 }
 function isColorPayload(value: string): boolean {
   return isHexColor(value) || parseGradientFill(value) !== null;
+}
+
+type HarmonyMode = "Complementary" | "Analogous" | "Monochrome" | "Triadic";
+
+interface EyeDropperResult {
+  sRGBHex: string;
+}
+
+interface EyeDropperInstance {
+  open: () => Promise<EyeDropperResult>;
+}
+
+type EyeDropperConstructor = new () => EyeDropperInstance;
+
+function getEyeDropperConstructor(): EyeDropperConstructor | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return (window as Window & typeof globalThis & { EyeDropper?: EyeDropperConstructor }).EyeDropper ?? null;
+}
+
+function collectLayerColors(layers: readonly DocumentLayer[]): string[] {
+  const colors: string[] = [];
+  for (const layer of layers) {
+    const fill = getLayerFill(layer);
+    if (fill !== null && isHexColor(fill)) {
+      colors.push(fill);
+    }
+    if (layer.kind !== "text" && layer.kind !== "image" && layer.kind !== "group" && isHexColor(layer.stroke ?? "")) {
+      colors.push(layer.stroke as string);
+    }
+    if (layer.kind === "group") {
+      colors.push(...collectLayerColors(layer.children));
+    }
+  }
+  return colors;
+}
+
+function uniqueColors(colors: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return colors.filter((color) => {
+    const normalized = color.toLowerCase();
+    if (!isHexColor(color) || seen.has(normalized)) {
+      return false;
+    }
+    seen.add(normalized);
+    return true;
+  });
+}
+
+function getHarmonyColors(color: string, mode: HarmonyMode): string[] {
+  const [hue, saturation, value] = rgbToHsv(...hexToRgb(color));
+  const offsets: Record<HarmonyMode, readonly number[]> = {
+    Complementary: [0, 180],
+    Analogous: [-30, 0, 30],
+    Monochrome: [0, 0, 0],
+    Triadic: [0, 120, 240],
+  };
+  if (mode === "Monochrome") {
+    return [0.55, 0.75, 1].map((brightness) => hsvToHex(hue, saturation, brightness));
+  }
+  return offsets[mode].map((offset) => hsvToHex((hue + offset + 360) % 360, saturation, value));
 }
 
 interface GradientStop {
@@ -187,36 +250,34 @@ function CircularColorPicker({ color, onChange }: CircularColorPickerProps) {
 
 // --- Main Panel Component ---
 export function ColorPanel({ studio }: { studio: UseCreativeStudioResult }) {
-  
-  let targetLayer = null;
-  if (studio.document) {
-    const ab = getActiveArtboard(studio.document);
-    if (ab) {
-      if (studio.activeLayer) {
-        targetLayer = findLayer(ab.layers, studio.activeLayer);
-      }
-      if (!targetLayer) {
-        targetLayer = ab.layers.find(l => l.role === "background");
-      }
+  const activeArtboard = studio.document ? getActiveArtboard(studio.document) : null;
+  let selectedLayer: DocumentLayer | null = null;
+  if (activeArtboard) {
+    if (studio.activeLayer) {
+      selectedLayer = findLayer(activeArtboard.layers, studio.activeLayer);
     }
   }
+  const selectedLayerCanFill = selectedLayer !== null && getLayerFill(selectedLayer) !== null;
+  const targetLayer = selectedLayerCanFill
+    ? selectedLayer
+    : activeArtboard?.layers.find((layer) => layer.role === "background") ?? null;
 
   const activeLayerId = targetLayer?.id;
-  
-  // Internal state to keep the input responsive
+  const eyeDropperConstructor = getEyeDropperConstructor();
+
   const [currentColor, setCurrentColor] = useState<string>("#ffffff");
-  const [inputMode, setInputMode] = useState<"HEX" | "RGB" | "HSL">("HEX");
   const [fillType, setFillType] = useState<"Solid" | "Gradient">("Solid");
-  
   const [gradientStops, setGradientStops] = useState<GradientStop[]>([
     {color: "#ff0080", pos: 0},
     {color: "#7928ca", pos: 100}
   ]);
   const [activeStopIdx, setActiveStopIdx] = useState(0);
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [harmonyMode, setHarmonyMode] = useState<HarmonyMode>("Complementary");
 
   useEffect(() => {
     if (targetLayer) {
-      const currentFill = getLayerFill(targetLayer as any);
+      const currentFill = getLayerFill(targetLayer);
       if (currentFill && currentFill !== 'mixed') {
         setCurrentColor(currentFill);
         // If it's a solid hex, reset fillType to Solid
@@ -240,21 +301,36 @@ export function ColorPanel({ studio }: { studio: UseCreativeStudioResult }) {
   const applyColor = useCallback((payload: string): void => {
     if (!isColorPayload(payload)) return;
     setCurrentColor(payload);
+    if (isHexColor(payload)) {
+      setRecentColors((current) => [payload, ...current.filter((color) => color.toLowerCase() !== payload.toLowerCase())].slice(0, 6));
+    }
     if (targetLayer?.role === "background" || (!studio.activeLayer && studio.document)) {
       studio.updateBackground(payload);
       return;
     }
     if (activeLayerId && targetLayer) {
-      const prevFill = getLayerFill(targetLayer as any) || "#000000";
+      const prevFill = getLayerFill(targetLayer) || "#000000";
       if (prevFill !== 'mixed' && prevFill !== payload) {
         studio.dispatchCommand(setPropertyCommand(activeLayerId, "fill", prevFill, payload));
       }
     }
   }, [activeLayerId, targetLayer, studio]);
 
-  const handleColorChange = useCallback((payload: string): void => {
-    applyColor(payload);
-  }, [applyColor]);
+  const applyEditableColor = useCallback((color: string): void => {
+    if (!isHexColor(color)) {
+      return;
+    }
+    if (fillType !== "Gradient") {
+      applyColor(color);
+      return;
+    }
+    if (!gradientStops[activeStopIdx]) {
+      return;
+    }
+    const nextStops = gradientStops.map((stop, index) => index === activeStopIdx ? { ...stop, color } : stop);
+    setGradientStops(nextStops);
+    applyColor(buildGradientPayload(nextStops));
+  }, [activeStopIdx, applyColor, fillType, gradientStops]);
 
   const handleFillTypeChange = useCallback((value: string | null): void => {
     if (value !== "Solid" && value !== "Gradient") {
@@ -268,23 +344,69 @@ export function ColorPanel({ studio }: { studio: UseCreativeStudioResult }) {
     applyColor(gradientStops[activeStopIdx]?.color ?? gradientStops[0]?.color ?? "#ffffff");
   }, [activeStopIdx, applyColor, gradientStops]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setCurrentColor(val);
-    if (isHexColor(val)) {
-      applyColor(val);
+  const editableColor = fillType === "Gradient"
+    ? gradientStops[activeStopIdx]?.color ?? "#ffffff"
+    : currentColor;
+
+  const documentSwatches = useMemo(() => uniqueColors([
+    ...(activeArtboard ? collectLayerColors(activeArtboard.layers) : []),
+    studio.brandKit.primaryColor,
+    studio.brandKit.secondaryColor,
+  ]).slice(0, 12), [activeArtboard, studio.brandKit.primaryColor, studio.brandKit.secondaryColor]);
+
+  const harmonyColors = useMemo(
+    () => getHarmonyColors(isHexColor(editableColor) ? editableColor : "#ffffff", harmonyMode),
+    [editableColor, harmonyMode],
+  );
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const value = event.target.value;
+    if (fillType === "Gradient") {
+      if (!gradientStops[activeStopIdx]) {
+        return;
+      }
+      const nextStops = gradientStops.map((stop, index) => index === activeStopIdx ? { ...stop, color: value } : stop);
+      setGradientStops(nextStops);
+      if (isHexColor(value)) {
+        applyColor(buildGradientPayload(nextStops));
+      }
+      return;
+    }
+    setCurrentColor(value);
+    if (isHexColor(value)) {
+      applyColor(value);
     }
   };
 
-  // Dummy swatches based on spec
-  const documentSwatches = ["#FF5733", "#33FF57", "#3357FF", "#F2F2F2", "#111111", "#FFF48B"];
-  const recentColors = ["#171717", "#2A2A2A", "#A6A6A6", "#E03C3C", "#4A90E2"];
+  const handleEyeDropper = useCallback(async (): Promise<void> => {
+    if (!eyeDropperConstructor) {
+      studio.showToast("Your browser does not support the eyedropper.", "info");
+      return;
+    }
+    try {
+      const result = await new eyeDropperConstructor().open();
+      applyEditableColor(result.sRGBHex);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      studio.showToast("Could not read a color from the screen.", "error");
+    }
+  }, [applyEditableColor, eyeDropperConstructor, studio]);
 
   return (
     <div className={styles.panel}>
       <div className={styles.secHead}>
-        <span className={styles.secTitle}>{studio.activeLayer ? "Layer Color" : "Canvas Background"}</span>
-        <IconButton label="Eyedropper" icon={<Pipette size={14} />} variant="ghost" size="sm" />
+        <span className={styles.secTitle}>{selectedLayerCanFill ? "Layer Color" : "Canvas Background"}</span>
+        <IconButton
+          label="Eyedropper"
+          icon={<Pipette size={14} />}
+          variant="ghost"
+          size="sm"
+          isDisabled={eyeDropperConstructor === null}
+          tooltip={eyeDropperConstructor ? "Pick a color from the screen" : "Eyedropper is not supported by this browser"}
+          onClick={() => void handleEyeDropper()}
+        />
       </div>
 
       <div style={{ marginBottom: 16 }}>
@@ -300,7 +422,7 @@ export function ColorPanel({ studio }: { studio: UseCreativeStudioResult }) {
       </div>
 
       {fillType === "Solid" ? (
-        <CircularColorPicker color={currentColor} onChange={handleColorChange} />
+        <CircularColorPicker color={editableColor} onChange={applyEditableColor} />
       ) : (
         <div className={styles.gradientBuilder}>
           <div 
@@ -309,32 +431,24 @@ export function ColorPanel({ studio }: { studio: UseCreativeStudioResult }) {
           />
           <div className={styles.gradientStops}>
             {gradientStops.map((s, i) => (
-              <div 
+              <button
+                type="button"
                 key={i}
                 className={`${styles.stopItem} ${activeStopIdx === i ? styles.active : ""}`}
                 style={{ background: s.color }}
-                onClick={() => {
-                  setActiveStopIdx(i);
-                }}
+                onClick={() => setActiveStopIdx(i)}
+                aria-label={`Select gradient stop ${i + 1}`}
               />
             ))}
             <IconButton label="Add Stop" icon={<Pipette size={12}/>} variant="ghost" size="sm" onClick={() => {
               const newStops = [...gradientStops, {color: "#ffffff", pos: 50}].sort((a,b) => a.pos - b.pos);
               setGradientStops(newStops);
-              handleColorChange(buildGradientPayload(newStops));
+              applyColor(buildGradientPayload(newStops));
             }} />
           </div>
           <CircularColorPicker 
             color={gradientStops[activeStopIdx]?.color || "#ffffff"} 
-            onChange={(hex) => {
-              const newStops = [...gradientStops];
-              if (!newStops[activeStopIdx]) {
-                return;
-              }
-              newStops[activeStopIdx].color = hex;
-              setGradientStops(newStops);
-              handleColorChange(buildGradientPayload(newStops));
-            }} 
+            onChange={applyEditableColor}
           />
         </div>
       )}
@@ -348,72 +462,79 @@ export function ColorPanel({ studio }: { studio: UseCreativeStudioResult }) {
         <input 
           type="text" 
           className={styles.colorInput} 
-          value={currentColor} 
+          value={editableColor}
           onChange={handleInputChange} 
           placeholder="#HEX"
+          aria-label="Color value"
         />
-        <button 
-          className={styles.modeSwitcher}
-          onClick={() => setInputMode(m => m === "HEX" ? "RGB" : m === "RGB" ? "HSL" : "HEX")}
-        >
-          {inputMode}
-        </button>
       </div>
 
-      <div className={styles.swatchesSec}>
-        <div className={styles.subTitle}>Document Swatches</div>
-        <div className={styles.swatchGrid}>
-          {documentSwatches.map(c => (
-            <div 
-              key={c} 
-              className={styles.swatch} 
-              style={{ background: c }} 
-              onClick={() => handleColorChange(c)} 
-              title={c}
-            />
-          ))}
+      {documentSwatches.length > 0 ? (
+        <div className={styles.swatchesSec}>
+          <div className={styles.subTitle}>Document & Brand Colors</div>
+          <div className={styles.swatchGrid}>
+            {documentSwatches.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={styles.swatch}
+                style={{ background: color }}
+                onClick={() => applyEditableColor(color)}
+                aria-label={`Apply ${color}`}
+                title={color}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <div className={styles.swatchesSec} style={{ paddingTop: 0 }}>
-        <div className={styles.subTitle}>Recent Colors</div>
-        <div className={styles.swatchGrid}>
-          {recentColors.map(c => (
-            <div 
-              key={c} 
-              className={styles.swatch} 
-              style={{ background: c }} 
-              onClick={() => handleColorChange(c)} 
-              title={c}
-            />
-          ))}
+      {recentColors.length > 0 ? (
+        <div className={styles.swatchesSec} style={{ paddingTop: 0 }}>
+          <div className={styles.subTitle}>Recent Colors</div>
+          <div className={styles.swatchGrid}>
+            {recentColors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={styles.swatch}
+                style={{ background: color }}
+                onClick={() => applyEditableColor(color)}
+                aria-label={`Apply recent ${color}`}
+                title={color}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className={styles.secHead} style={{ marginTop: 8 }}>
-        <span className={styles.secTitle}>Palettes</span>
-        <IconButton label="AI Assist" icon={<Sparkles size={14} />} variant="ghost" size="sm" />
+        <span className={styles.secTitle}>Color Harmony</span>
       </div>
       <div className={styles.harmonyRow}>
-        <button className={styles.harmonyBtn}>Complementary</button>
-        <button className={styles.harmonyBtn}>Analogous</button>
-        <button className={styles.harmonyBtn}>Monochrome</button>
-        <button className={styles.harmonyBtn}>Triadic</button>
+        {(["Complementary", "Analogous", "Monochrome", "Triadic"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            className={`${styles.harmonyBtn} ${harmonyMode === mode ? styles.harmonyBtnActive : ""}`}
+            aria-pressed={harmonyMode === mode}
+            onClick={() => setHarmonyMode(mode)}
+          >
+            {mode}
+          </button>
+        ))}
       </div>
-
-      <div className={styles.featureList}>
-        <div className={styles.featureItem}>
-          <Layers size={14} /> Extract from Image
-        </div>
-        <div className={styles.featureItem}>
-          <SlidersHorizontal size={14} /> Match Color
-        </div>
-        <div className={styles.featureItem}>
-          <Sun size={14} /> Gradient & Blend
-        </div>
-        <div className={styles.featureItem}>
-          <Contrast size={14} /> Accessibility (WCAG 4.5:1)
-        </div>
+      <div className={styles.harmonySwatches}>
+        {harmonyColors.map((color) => (
+          <button
+            key={color}
+            type="button"
+            className={styles.swatch}
+            style={{ background: color }}
+            onClick={() => applyEditableColor(color)}
+            aria-label={`Apply harmony ${color}`}
+            title={color}
+          />
+        ))}
       </div>
     </div>
   );

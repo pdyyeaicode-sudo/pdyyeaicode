@@ -229,6 +229,30 @@
   display: block;
 }
 
+/*
+  The design markup is NOT auto-fitted.
+
+  `.canvas :global(svg) { max-width: 100% }` above is for incidental SVG in the
+  shell (icons, empty states). Applied to the design document it silently rescaled
+  it: a 1350px artboard in a 1200px host was drawn at 0.888x, so the editor was at
+  an effective zoom nobody asked for and the zoom control read 1 while showing 0.888.
+
+  That mattered beyond aesthetics. `useSelectionGeometry` measures the real SVG
+  layout, so the DOM chrome followed the shrink, while the engine draws the canvas at
+  the artboard's native size and scales it by the zoom alone. The two surfaces
+  therefore disagreed by the fit factor at any artboard larger than its host — which
+  is the DEFAULT case, since the stock document is 1080x1080. Everything still
+  positioned from the DOM geometry, the inline text editor most of all, inherited that
+  error.
+
+  Fitting the document to the viewport is the zoom's job, and the zoom is a value the
+  editor owns and can report.
+*/
+.canvas :global(.svg-canvas-markup) > :global(svg) {
+  max-width: none;
+  height: revert;
+}
+
 .canvasEmpty {
   color: #4a4a4a;
   text-align: center;
